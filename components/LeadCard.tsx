@@ -12,7 +12,7 @@ interface LeadCardProps {
   onSelect?: (id: string) => void;
   onUpdateStatus: (id: string, status: Lead['status']) => void;
   onDelete: (id: string) => void;
-  onOpenOmnichannel: (lead: Lead, tab?: 'pitro_crm' | 'cadence' | 'guardian' | 'objection_crusher' | 'whatsapp' | 'email' | 'call' | 'webhook' | 'bant' | 'tech') => void;
+  onOpenOmnichannel: (lead: Lead, tab?: 'criahub_crm' | 'cadence' | 'guardian' | 'objection_crusher' | 'whatsapp' | 'email' | 'call' | 'webhook' | 'bant' | 'tech') => void;
   onOpenLiveCopilot?: (lead: Lead) => void;
 }
 
@@ -256,15 +256,15 @@ const LeadCard: React.FC<LeadCardProps> = ({
       {/* Omnichannel Quick Action Triggers */}
       <div className="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
         <div className="grid grid-cols-4 gap-1">
-          {/* Pitro CRM Sync */}
+          {/* Criahub CRM Sync */}
           <button 
-            id={`btn-pitro-${lead.id}`}
-            onClick={() => onOpenOmnichannel(lead, 'pitro_crm')}
+            id={`btn-criahub-${lead.id}`}
+            onClick={() => onOpenOmnichannel(lead, 'criahub_crm')}
             className="flex flex-col items-center justify-center py-1.5 px-0.5 bg-purple-50 hover:bg-purple-100 text-purple-900 rounded border border-purple-300 transition-colors text-[9px] font-black"
-            title="Sincronizar com Pitro CRM & Evolution API"
+            title="Sincronizar com Criahub CRM & CriahubADS"
           >
             <Zap className="w-3 h-3 text-purple-600 mb-0.5" />
-            <span>Pitro CRM</span>
+            <span>Criahub CRM</span>
           </button>
 
           {/* AI Live Copilot */}

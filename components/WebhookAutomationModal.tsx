@@ -7,11 +7,11 @@ import {
 } from 'lucide-react';
 import { getWebhookLogs, logWebhookDispatch, WebhookLog } from '../services/storageService';
 import { 
-  getPitroCrmConfig, 
-  savePitroCrmConfig, 
-  sendLeadToPitroCrm, 
-  buildPitroCrmPayload 
-} from '../services/pitroCrmService';
+  getCriahubCrmConfig, 
+  saveCriahubCrmConfig, 
+  sendLeadToCriahubCrm, 
+  buildCriahubCrmPayload 
+} from '../services/criahubCrmService';
 
 interface WebhookAutomationModalProps {
   isOpen: boolean;
@@ -26,8 +26,8 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
   leads,
   selectedLeadIds
 }) => {
-  const [config, setConfig] = useState(getPitroCrmConfig());
-  const [targetChannel, setTargetChannel] = useState<'PITRO_CRM' | 'EVOLUTION_API' | 'RESEND_EMAIL' | 'UNIVERSAL_N8N'>('PITRO_CRM');
+  const [config, setConfig] = useState(getCriahubCrmConfig());
+  const [targetChannel, setTargetChannel] = useState<'CRIAHUB_CRM' | 'EVOLUTION_API' | 'RESEND_EMAIL' | 'UNIVERSAL_N8N'>('CRIAHUB_CRM');
   const [isSending, setIsSending] = useState(false);
   const [logs, setLogs] = useState<WebhookLog[]>(getWebhookLogs());
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
   };
 
   const handleSaveConfigField = (field: string, value: any) => {
-    const updated = savePitroCrmConfig({ [field]: value });
+    const updated = saveCriahubCrmConfig({ [field]: value });
     setConfig(updated);
   };
 
@@ -59,10 +59,10 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
 
     const testLead = targetLeads[0];
     setIsSending(true);
-    setDispatchStatus(`Testando envio do lead "${testLead.name}" para ${config.webhookUrl || 'Pitro CRM'}...`);
+    setDispatchStatus(`Testando envio do lead "${testLead.name}" para ${config.webhookUrl || 'CriahubCRM'}...`);
 
     try {
-      const result = await sendLeadToPitroCrm(testLead, undefined, {
+      const result = await sendLeadToCriahubCrm(testLead, undefined, {
         channelPriority: targetChannel === 'EVOLUTION_API' ? 'WHATSAPP' : targetChannel === 'RESEND_EMAIL' ? 'EMAIL' : 'OMNICHANNEL'
       });
 
@@ -97,7 +97,7 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
         const lead = targetLeads[i];
         setProgressCount(i + 1);
 
-        const result = await sendLeadToPitroCrm(lead, undefined, {
+        const result = await sendLeadToCriahubCrm(lead, undefined, {
           channelPriority: targetChannel === 'EVOLUTION_API' ? 'WHATSAPP' : targetChannel === 'RESEND_EMAIL' ? 'EMAIL' : 'OMNICHANNEL'
         });
 
@@ -122,7 +122,7 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
 
   // Preview payload for current selection
   const sampleLead = targetLeads[0] || leads[0];
-  const samplePayload = sampleLead ? buildPitroCrmPayload(sampleLead) : null;
+  const samplePayload = sampleLead ? buildCriahubCrmPayload(sampleLead) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto animate-fadeIn">
@@ -137,17 +137,17 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black px-2.5 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/40 uppercase tracking-wider flex items-center gap-1">
                   <Zap className="w-3 h-3 text-amber-400" />
-                  Módulo 5: Pitro CRM & Outbound Webhook Hub
+                  Módulo 5: CriahubCRM & Outbound Webhook Hub
                 </span>
                 <span className="text-[10px] font-mono bg-slate-800 text-emerald-300 px-2 py-0.5 rounded border border-slate-700">
                   Evolution API v2 • Evolution Go • Resend
                 </span>
               </div>
               <h2 className="text-xl font-extrabold text-white">
-                Integração Pitro CRM & Disparador de Mensagens
+                Integração CriahubCRM & Disparador de Mensagens
               </h2>
               <p className="text-xs text-purple-200/80 max-w-2xl">
-                Sincronize leads qualificados, diagnósticos BANT+, Tech Stack e gatilhos de WhatsApp (Evolution API / Go) e E-mail diretamente para o Pitro CRM ou seu Webhook no n8n/Make.
+                Sincronize leads qualificados, diagnósticos BANT+, Tech Stack e gatilhos de WhatsApp (Evolution API / Go) e E-mail diretamente para o CriahubCRM ou seu Webhook no n8n/Make.
               </p>
             </div>
             <button 
@@ -167,7 +167,7 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                 <Settings className="w-4 h-4 text-purple-600" />
-                1. Configurações de Conexão com o Pitro CRM & Evolution API
+                1. Configurações de Conexão com o CriahubCRM & Evolution API
               </h3>
               <span className="text-[11px] text-slate-500 font-semibold">Salvo automaticamente</span>
             </div>
@@ -177,13 +177,13 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
               {/* Webhook Endpoint */}
               <div className="md:col-span-2">
                 <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-1">
-                  Webhook URL de Entrada do Pitro CRM / n8n / Make
+                  Webhook URL de Entrada do CriahubCRM / n8n / Make
                 </label>
                 <input
                   type="url"
                   value={config.webhookUrl}
                   onChange={e => handleSaveConfigField('webhookUrl', e.target.value)}
-                  placeholder="https://api.pitrocrm.com/v1/webhooks/inbound/leads ou seu n8n"
+                  placeholder="https://xcgphxriuopvqohvidfi.supabase.co/functions/v1/webhook-handler ou seu n8n"
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono text-slate-900 focus:ring-2 focus:ring-purple-500 outline-none"
                 />
               </div>
@@ -198,7 +198,7 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
                   onChange={e => setTargetChannel(e.target.value as any)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-2 focus:ring-purple-500 outline-none"
                 >
-                  <option value="PITRO_CRM">Pitro CRM (Leads + WhatsApp + Email)</option>
+                  <option value="CRIAHUB_CRM">CriahubCRM (Leads + WhatsApp + Email)</option>
                   <option value="EVOLUTION_API">Evolution API (Apenas WhatsApp v2 / Go)</option>
                   <option value="RESEND_EMAIL">Resend / SES (Apenas E-mail Outbound)</option>
                   <option value="UNIVERSAL_N8N">Webhook Universal (n8n / Make / Chatwoot)</option>
@@ -228,7 +228,7 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
                   type="password"
                   value={config.apiToken || ''}
                   onChange={e => handleSaveConfigField('apiToken', e.target.value)}
-                  placeholder="Bearer Token do Pitro CRM / Evolution"
+                  placeholder="Bearer Token do CriahubCRM / Evolution"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono text-slate-900 focus:ring-2 focus:ring-purple-500 outline-none"
                 />
               </div>
@@ -286,7 +286,7 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
-                      <span>Disparar {targetLeads.length} Leads para Pitro CRM</span>
+                      <span>Disparar {targetLeads.length} Leads para CriahubCRM</span>
                     </>
                   )}
                 </button>
@@ -306,13 +306,13 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
             )}
           </div>
 
-          {/* Sample Payload Preview formatted for Pitro CRM & Evolution API */}
+          {/* Sample Payload Preview formatted for CriahubCRM & Evolution API */}
           {samplePayload && (
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-indigo-600" />
-                  2. Exemplo do Payload Formatado para Pitro CRM & Evolution API (JSON)
+                  2. Exemplo do Payload Formatado para CriahubCRM & Evolution API (JSON)
                 </span>
                 <button
                   onClick={() => handleCopy(JSON.stringify(samplePayload, null, 2), 'sample')}
@@ -362,7 +362,7 @@ export const WebhookAutomationModal: React.FC<WebhookAutomationModalProps> = ({
 
         {/* Footer */}
         <div className="p-4 bg-white border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
-          <span>Pitro CRM Ready • Evolution API v2 • Resend SMTP</span>
+          <span>CriahubCRM Ready • Evolution API v2 • Resend SMTP</span>
           <button
             onClick={onClose}
             className="px-5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"

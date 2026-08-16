@@ -9,6 +9,7 @@ import {
 import { analyzeBusinessProfile } from '../services/geminiService';
 import { saveBusinessProfile } from '../services/storageService';
 import { getAiConfig, saveAiConfig, testGroqKey } from '../services/aiProviderService';
+import { getRapidApiToken, saveRapidApiToken } from '../services/letscrapeService';
 import { DEFAULT_HIGH_TICKET_NICHES, GEMINI_MODELS } from '../constants';
 import { getSavedCountry, getCurrencyConfig } from '../services/countryService';
 
@@ -33,6 +34,7 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
     recommendedHighTicketNiches: profile.recommendedHighTicketNiches?.length ? profile.recommendedHighTicketNiches : DEFAULT_HIGH_TICKET_NICHES
   });
   const [aiConfig, setAiConfig] = useState<AiEngineConfig>(getAiConfig());
+  const [rapidApiToken, setRapidApiToken] = useState<string>(getRapidApiToken());
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [testingKeyIndex, setTestingKeyIndex] = useState<number | null>(null);
@@ -45,6 +47,7 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
         recommendedHighTicketNiches: profile.recommendedHighTicketNiches?.length ? profile.recommendedHighTicketNiches : DEFAULT_HIGH_TICKET_NICHES
       });
       setAiConfig(getAiConfig());
+      setRapidApiToken(getRapidApiToken());
     }
   }, [isOpen, profile]);
 
@@ -570,6 +573,41 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
                     Usa a infraestrutura nativa do Google AI com o modelo selecionado abaixo.
                   </p>
                 </button>
+              </div>
+
+              {/* RapidAPI LetScrape Token (fonte de leads reais) */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-emerald-600" />
+                    Token RapidAPI — LetScrape (Leads Reais)
+                  </label>
+                  {rapidApiToken.trim().length > 10 ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Configurada
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full">
+                      Necessária p/ leads reais
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="password"
+                  value={rapidApiToken}
+                  onChange={e => {
+                    setRapidApiToken(e.target.value);
+                    saveRapidApiToken(e.target.value);
+                  }}
+                  placeholder="Cole sua RapidAPI Key (local-business-data)"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  Fonte primária de prospecção: retorna <strong>empresas reais</strong> do Google Maps
+                  (nome, site que abre, telefone, avaliações). Fallback gratuito: OpenStreetMap. A IA
+                  (Groq/Gemini) apenas <strong>enriquece</strong> essas empresas — nunca inventa dados.
+                </p>
               </div>
 
               {/* 3 Groq Keys Inputs */}

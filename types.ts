@@ -183,7 +183,7 @@ export interface WebhookPayloads {
     leadName: string;
     company: string;
   };
-  pitroCrmSync?: {
+  criahubCrmSync?: {
     leadId: string;
     companyName: string;
     contactName: string;
@@ -264,8 +264,9 @@ export interface WebhookPayloads {
   };
 }
 
-export interface PitroCrmConfig {
+export interface CriahubCrmConfig {
   webhookUrl: string;
+  organizationId?: string;
   apiToken?: string;
   evolutionInstanceName?: string;
   evolutionApiUrl?: string;
@@ -303,7 +304,7 @@ export interface AiLiveCopilotAnalysis {
   nextBestAction: string; // Ex: "Propor micro-compromisso de 10 min", "Mandar caso de sucesso pelo WhatsApp"
   suggestedMeetingTimes: string[]; // Sugestões de horários rápidos (ex: "Amanhã às 10h30 ou 14h")
   isReadyForClosing: boolean;
-  pitroCrmNote: string; // Nota gerada pela IA para sincronizar no CRM
+  criahubCrmNote: string; // Nota gerada pela IA para sincronizar no Criahub CRM
 }
 
 export interface Lead {

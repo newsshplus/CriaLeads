@@ -1,46 +1,60 @@
-import { Lead, PitroCrmConfig, BusinessProfile, AiLiveCopilotAnalysis } from '../types';
+import { Lead, CriahubCrmConfig, BusinessProfile, AiLiveCopilotAnalysis } from '../types';
 import { logWebhookDispatch } from './storageService';
 
-const PITRO_CONFIG_KEY = 'pitro_crm_config_v1';
+const CRIAHUB_CONFIG_KEY = 'criahub_crm_config_v1';
 
-export const DEFAULT_PITRO_CONFIG: PitroCrmConfig = {
-  webhookUrl: 'https://api.pitrocrm.com/v1/webhooks/inbound/leads',
+export const DEFAULT_CRIAHUB_CONFIG: CriahubCrmConfig = {
+  webhookUrl: 'https://xcgphxriuopvqohvidfi.supabase.co/functions/v1/webhook-handler',
+  organizationId: '',
   apiToken: '',
   evolutionInstanceName: 'prospector-sdr-01',
-  evolutionApiUrl: 'https://evolution.pitrocrm.com/message/sendText',
+  evolutionApiUrl: '',
   resendApiKey: '',
   senderEmail: 'sdr@suaempresa.com.br',
   autoSyncOnContacted: true,
   defaultPipelineStage: 'Prospecção Fria'
 };
 
-export function getPitroCrmConfig(): PitroCrmConfig {
+export function getCriahubCrmConfig(): CriahubCrmConfig {
   try {
-    const raw = localStorage.getItem(PITRO_CONFIG_KEY);
+    const raw = localStorage.getItem(CRIAHUB_CONFIG_KEY);
     if (raw) {
-      return { ...DEFAULT_PITRO_CONFIG, ...JSON.parse(raw) };
+      return { ...DEFAULT_CRIAHUB_CONFIG, ...JSON.parse(raw) };
     }
   } catch (e) {
-    console.error('Error loading Pitro CRM config:', e);
+    console.error('Error loading Criahub CRM config:', e);
   }
-  return DEFAULT_PITRO_CONFIG;
+  return DEFAULT_CRIAHUB_CONFIG;
 }
 
-export function savePitroCrmConfig(config: Partial<PitroCrmConfig>): PitroCrmConfig {
-  const current = getPitroCrmConfig();
+export function saveCriahubCrmConfig(config: Partial<CriahubCrmConfig>): CriahubCrmConfig {
+  const current = getCriahubCrmConfig();
   const updated = { ...current, ...config };
   try {
-    localStorage.setItem(PITRO_CONFIG_KEY, JSON.stringify(updated));
+    localStorage.setItem(CRIAHUB_CONFIG_KEY, JSON.stringify(updated));
   } catch (e) {
-    console.error('Error saving Pitro CRM config:', e);
+    console.error('Error saving Criahub CRM config:', e);
   }
   return updated;
 }
 
 /**
- * Builds a standardized, ultra-complete payload for Pitro CRM and attached automation engines (Evolution API v2, Evolution Go, Resend, Chatwoot, Typebot).
+ * Builds the CriahubADS webhook URL with the organization_id and source=crialeads.
+ * The CriahubADS function /functions/v1/webhook-handler reads org_id + source from the query string.
  */
-export function buildPitroCrmPayload(
+export function buildCriahubCrmWebhookUrl(): string {
+  const config = getCriahubCrmConfig();
+  const separator = config.webhookUrl.includes('?') ? '&' : '?';
+  const orgParam = config.organizationId
+    ? `org_id=${encodeURIComponent(config.organizationId)}`
+    : 'org_id=SEU_ORG_ID_CRIAHUB';
+  return `${config.webhookUrl}${separator}${orgParam}&source=crialeads`;
+}
+
+/**
+ * Builds a standardized, ultra-complete payload for CriahubCRM (CriahubADS) and attached automation engines (Evolution API v2, Resend, n8n).
+ */
+export function buildCriahubCrmPayload(
   lead: Lead, 
   businessProfile?: BusinessProfile, 
   customOptions?: { 
@@ -49,7 +63,7 @@ export function buildPitroCrmPayload(
     pipelineStage?: string;
   }
 ) {
-  const config = getPitroCrmConfig();
+  const config = getCriahubCrmConfig();
   const channelPriority = customOptions?.channelPriority || 'OMNICHANNEL';
   const variation = customOptions?.whatsappVariation || 'A';
   const stage = customOptions?.pipelineStage || config.defaultPipelineStage;
@@ -66,10 +80,10 @@ export function buildPitroCrmPayload(
     whatsappText = spinning.variationA;
   }
 
-  // Sanitized clean phone for Evolution API / WhatsApp
+  // Sanitized clean phone for WhatsApp
   const rawPhone = lead.phone || '';
   const cleanPhone = rawPhone.replace(/\D/g, '');
-  const formattedEvolutionNumber = cleanPhone.length > 0
+  const formattedWhatsAppNumber = cleanPhone.length > 0
     ? (cleanPhone.startsWith('55') || cleanPhone.startsWith('351') ? cleanPhone : `55${cleanPhone}`)
     : '';
 
@@ -83,10 +97,11 @@ export function buildPitroCrmPayload(
     dispatchedAt: new Date().toISOString(),
     event: 'LEAD_PROSPECTED_QUALIFIED',
     
-    // Core Lead Identification
+    // Core Lead Identification (mapped to CriahubADS leads table)
     lead: {
       id: lead.id,
       companyName: lead.name,
+      name: lead.name,
       category: lead.category,
       address: lead.address,
       city: lead.city,
@@ -94,7 +109,7 @@ export function buildPitroCrmPayload(
       country: lead.country || 'Brasil',
       website: lead.website || '',
       phone: lead.phone || '',
-      whatsappNumber: formattedEvolutionNumber,
+      whatsappNumber: formattedWhatsAppNumber,
       email: lead.email || '',
       rating: lead.rating,
       reviewsCount: lead.reviews,
@@ -149,10 +164,10 @@ export function buildPitroCrmPayload(
       vulnerabilitiesAndGaps: lead.techStack.vulnerabilitiesAndGaps
     } : null,
 
-    // Outbound Automation Dispatch Payloads (Evolution API / Evolution Go)
+    // Outbound Automation Dispatch Payloads (Evolution API / WhatsApp)
     evolutionApiWhatsApp: {
       instance: config.evolutionInstanceName || 'prospector-sdr-01',
-      number: formattedEvolutionNumber,
+      number: formattedWhatsAppNumber,
       text: whatsappText,
       delaySeconds: guardianShield?.temporalHumanization?.typingDelaySeconds || 22,
       presence: guardianShield?.temporalHumanization?.presenceState || 'composing',
@@ -161,7 +176,7 @@ export function buildPitroCrmPayload(
         linkPreview: true,
         quoted: null
       },
-      webhookCallbackUrl: `${config.webhookUrl}/callbacks/whatsapp`
+      webhookCallbackUrl: `${buildCriahubCrmWebhookUrl()}/callbacks/whatsapp`
     },
 
     // Email Outbound Payload (Resend / SendGrid / SES)
@@ -206,9 +221,9 @@ export function buildPitroCrmPayload(
 }
 
 /**
- * Dispatches the enriched Lead to Pitro CRM or any Custom Webhook Endpoint.
+ * Dispatches the enriched Lead to CriahubCRM (CriahubADS webhook-handler) or any Custom Webhook Endpoint.
  */
-export async function sendLeadToPitroCrm(
+export async function sendLeadToCriahubCrm(
   lead: Lead, 
   businessProfile?: BusinessProfile, 
   customOptions?: { 
@@ -218,23 +233,24 @@ export async function sendLeadToPitroCrm(
     targetUrlOverride?: string;
   }
 ): Promise<{ success: boolean; message: string; payload: any; responseData?: any }> {
-  const config = getPitroCrmConfig();
-  const targetUrl = customOptions?.targetUrlOverride || config.webhookUrl;
-  const payload = buildPitroCrmPayload(lead, businessProfile, customOptions);
+  const config = getCriahubCrmConfig();
+  const defaultTarget = buildCriahubCrmWebhookUrl();
+  const targetUrl = customOptions?.targetUrlOverride || defaultTarget;
+  const payload = buildCriahubCrmPayload(lead, businessProfile, customOptions);
 
   if (!targetUrl || !targetUrl.startsWith('http')) {
     // Simulated Dispatch when no real URL configured
     logWebhookDispatch({
       type: 'CUSTOM_WEBHOOK',
-      targetUrl: targetUrl || 'Pitro CRM (Simulado)',
+      targetUrl: targetUrl || 'Criahub CRM (Simulado)',
       payload,
       status: 'SIMULATED',
-      response: 'Payload validado e formatado com sucesso para Pitro CRM & Evolution API.'
+      response: 'Payload validado e formatado com sucesso para CriahubCRM & CriahubADS.'
     });
 
     return {
       success: true,
-      message: `Simulação concluída com sucesso para ${lead.name}. Payload gerado conforme especificação Pitro CRM & Evolution API.`,
+      message: `Simulação concluída com sucesso para ${lead.name}. Payload gerado conforme especificação CriahubCRM & CriahubADS.`,
       payload
     };
   }
@@ -281,7 +297,7 @@ export async function sendLeadToPitroCrm(
 
       return {
         success: true,
-        message: `Lead ${lead.name} sincronizado com sucesso no Pitro CRM (Status HTTP ${response.status}).`,
+        message: `Lead ${lead.name} sincronizado com sucesso no CriahubCRM (Status HTTP ${response.status}).`,
         payload,
         responseData: responseJson
       };
@@ -296,13 +312,13 @@ export async function sendLeadToPitroCrm(
 
       return {
         success: false,
-        message: `Falha na resposta do Pitro CRM (HTTP ${response.status}): ${responseText.slice(0, 150)}`,
+        message: `Falha na resposta do CriahubCRM (HTTP ${response.status}): ${responseText.slice(0, 150)}`,
         payload,
         responseData: responseJson
       };
     }
   } catch (error: any) {
-    console.error('Error sending lead to Pitro CRM:', error);
+    console.error('Error sending lead to Criahub CRM:', error);
     logWebhookDispatch({
       type: 'CUSTOM_WEBHOOK',
       targetUrl,
@@ -320,15 +336,15 @@ export async function sendLeadToPitroCrm(
 }
 
 /**
- * Dispatches a real-time Live Conversation & AI Copilot Analysis Turn to Pitro CRM.
+ * Dispatches a real-time Live Conversation & AI Copilot Analysis Turn to CriahubCRM (CriahubADS).
  */
-export async function sendLiveCallAnalysisToPitroCrm(
+export async function sendLiveCallAnalysisToCriahubCrm(
   lead: Lead | null,
   analysis: AiLiveCopilotAnalysis,
   transcript: string
 ): Promise<{ success: boolean; message: string }> {
-  const config = getPitroCrmConfig();
-  const targetUrl = config.webhookUrl;
+  const config = getCriahubCrmConfig();
+  const targetUrl = buildCriahubCrmWebhookUrl();
 
   const liveCallPayload = {
     source: 'Architect-Prospector-AI',
@@ -356,16 +372,16 @@ export async function sendLiveCallAnalysisToPitroCrm(
       suggestedMeetingTimes: analysis.suggestedMeetingTimes,
       isReadyForClosing: analysis.isReadyForClosing
     },
-    crmActivityNote: analysis.pitroCrmNote || `[AI Copilot Realtime] Sentimento: ${analysis.sentiment.toUpperCase()} | Sinal de Compra: ${analysis.buyingSignalScore}% | Próxima Ação: ${analysis.nextBestAction}`
+    crmActivityNote: analysis.criahubCrmNote || `[AI Copilot Realtime] Sentimento: ${analysis.sentiment.toUpperCase()} | Sinal de Compra: ${analysis.buyingSignalScore}% | Próxima Ação: ${analysis.nextBestAction}`
   };
 
   if (!targetUrl || !targetUrl.startsWith('http')) {
     logWebhookDispatch({
       type: 'CUSTOM_WEBHOOK',
-      targetUrl: 'Pitro CRM (Live Call Sync Simulado)',
+      targetUrl: 'Criahub CRM (Live Call Sync Simulado)',
       payload: liveCallPayload,
       status: 'SIMULATED',
-      response: 'Análise de áudio/chamada registrada no histórico do Pitro CRM com sucesso.'
+      response: 'Análise de áudio/chamada registrada no histórico do Criahub CRM com sucesso.'
     });
     return { success: true, message: 'Análise de chamada simulada e registrada com sucesso.' };
   }
@@ -382,7 +398,7 @@ export async function sendLiveCallAnalysisToPitroCrm(
 
     return {
       success: response.ok,
-      message: response.ok ? 'Análise de chamada ao vivo enviada para o Pitro CRM com sucesso.' : `Falha HTTP ${response.status}`
+      message: response.ok ? 'Análise de chamada ao vivo enviada para o Criahub CRM com sucesso.' : `Falha HTTP ${response.status}`
     };
   } catch (e: any) {
     return { success: false, message: e.message || 'Erro ao sincronizar análise' };

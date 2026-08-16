@@ -39,7 +39,7 @@ import ScrapingPipelineBanner from './components/ScrapingPipelineBanner';
 import AiLiveCopilotModal from './components/AiLiveCopilotModal';
 import CountrySelectModal from './components/CountrySelectModal';
 
-// --- Utilitários de deduplicação/merge de leads ---
+// --- UtilitÃ¡rios de deduplicaÃ§Ã£o/merge de leads ---
 const normalizeName = (name: string) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 const normalizeWebsite = (url: string) => url.replace(/^https?:\/\//, '').replace(/^www\./, '').toLowerCase().replace(/\/+$/, '').trim();
 
@@ -56,7 +56,7 @@ function mergeLeadLists(newLeads: Lead[], existing: Lead[]): Lead[] {
     const key = keyOf(lead);
     const dup = !seen.has(key) && existing.find(e => keyOf(e) === key);
     if (dup) {
-      // Mantém ID/status/contato do lead já existente, mas adota o enriquecimento mais recente
+      // MantÃ©m ID/status/contato do lead jÃ¡ existente, mas adota o enriquecimento mais recente
       merged.push({
         ...lead,
         id: dup.id,
@@ -115,7 +115,7 @@ export function App() {
     };
   });
 
-  // Onboarding: na primeira abertura, pergunta qual país o usuário quer prospectar
+  // Onboarding: na primeira abertura, pergunta qual paÃ­s o usuÃ¡rio quer prospectar
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (!hasSavedCountryChoice()) {
@@ -159,10 +159,10 @@ export function App() {
   const [loadingStep, setLoadingStep] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [engineStatus, setEngineStatus] = useState<ScrapingEngineStatus>({
-    primary: { name: "AI Core Multi-Engine (Groq 3-Key Pool + Gemini)", status: "ACTIVE" },
-    secondary: { name: "DuckDuckGo + Playwright Headless", status: "FALLBACK_READY" },
-    tertiary: { name: "Google & Bing Web Search Free API Layer", status: "READY" },
-    activeEngine: "AI Multi-Engine (Auto Fallback)",
+    primary: { name: "RapidAPI LetScrape — Local Business Data (Empresas Reais)", status: "ACTIVE" },
+    secondary: { name: "OpenStreetMap Overpass (Fallback Gratuito)", status: "FALLBACK_READY" },
+    tertiary: { name: "IA Groq — Enriquecimento Anti-Alucinação", status: "READY" },
+    activeEngine: "LetScrape → OSM → Groq (Auto Fallback)",
     lastLatencyMs: 1250,
     extractedCount: leads.length
   });
@@ -170,7 +170,7 @@ export function App() {
   // View & UI Modals State
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [selectedLeadForOmnichannel, setSelectedLeadForOmnichannel] = useState<Lead | null>(null);
-  const [omnichannelInitialTab, setOmnichannelInitialTab] = useState<'pitro_crm' | 'cadence' | 'guardian' | 'objection_crusher' | 'whatsapp' | 'email' | 'call' | 'webhook' | 'bant' | 'tech'>('cadence');
+  const [omnichannelInitialTab, setOmnichannelInitialTab] = useState<'criahub_crm' | 'cadence' | 'guardian' | 'objection_crusher' | 'whatsapp' | 'email' | 'call' | 'webhook' | 'bant' | 'tech'>('cadence');
   const [isOmnichannelOpen, setIsOmnichannelOpen] = useState(false);
   const [isWebhookModalOpen, setIsWebhookModalOpen] = useState(false);
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
@@ -214,8 +214,8 @@ export function App() {
 
     const isAuto = !targetKeyword || targetKeyword.trim() === "" || targetKeyword.toLowerCase() === "auto";
     setLoadingStep(isAuto 
-      ? '1/4 Mapeando Nichos de Alto Ticket & Alta Conversão para os seus serviços...'
-      : `1/4 Iniciando Prospecção para "${targetKeyword}" com IA e Fallback...`
+      ? '1/4 Mapeando Nichos de Alto Ticket & Alta ConversÃ£o para os seus serviÃ§os...'
+      : `1/4 Iniciando ProspecÃ§Ã£o para "${targetKeyword}" com IA e Fallback...`
     );
 
     // Clear any previous pending step timers before scheduling new ones
@@ -223,8 +223,8 @@ export function App() {
     const isLoadingRef = { value: true };
     loadingStepTimerRef.current = [
       window.setTimeout(() => { if (isLoadingRef.value) setLoadingStep('2/4 Mapeando Decisores, WhatsApp Direto & Falhas de Tecnologia...'); }, 2500),
-      window.setTimeout(() => { if (isLoadingRef.value) setLoadingStep('3/4 Calculando Intent Score e Deep Matching com suas soluções...'); }, 5000),
-      window.setTimeout(() => { if (isLoadingRef.value) setLoadingStep('4/4 Gerando Roteiros Omnichannel e Payloads Pitro CRM / Z-API...'); }, 7500)
+      window.setTimeout(() => { if (isLoadingRef.value) setLoadingStep('3/4 Calculando Intent Score e Deep Matching com suas soluÃ§Ãµes...'); }, 5000),
+      window.setTimeout(() => { if (isLoadingRef.value) setLoadingStep('4/4 Gerando Roteiros Omnichannel e Payloads Criahub CRM / Z-API...'); }, 7500)
     ];
 
     try {
@@ -250,7 +250,7 @@ export function App() {
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       console.error(err);
-      setError(err.message || 'Erro durante o processo de prospecção autônoma.');
+      setError(err.message || 'Erro durante o processo de prospecÃ§Ã£o autÃ´noma.');
     } finally {
       isLoadingRef.value = false;
       loadingStepTimerRef.current.forEach(t => window.clearTimeout(t));
@@ -289,7 +289,7 @@ export function App() {
     });
   };
 
-  const handleOpenOmnichannel = (lead: Lead, tab: 'pitro_crm' | 'cadence' | 'guardian' | 'objection_crusher' | 'whatsapp' | 'email' | 'call' | 'webhook' | 'bant' | 'tech' = 'cadence') => {
+  const handleOpenOmnichannel = (lead: Lead, tab: 'criahub_crm' | 'cadence' | 'guardian' | 'objection_crusher' | 'whatsapp' | 'email' | 'call' | 'webhook' | 'bant' | 'tech' = 'cadence') => {
     setSelectedLeadForOmnichannel(lead);
     setOmnichannelInitialTab(tab);
     setIsOmnichannelOpen(true);
@@ -463,7 +463,7 @@ export function App() {
     const mediumPriority = leads.filter(l => l.intentPriority === 'MEDIUM').length;
     const disqualified = leads.filter(l => l.intentPriority === 'DISQUALIFIED' || l.icpTier === 'SCORE_C').length;
 
-    // Approximate pipeline value calculation (Score A * 14.000 + Score B * 7.500, escalado pela moeda do país)
+    // Approximate pipeline value calculation (Score A * 14.000 + Score B * 7.500, escalado pela moeda do paÃ­s)
     const scale = getCurrencyConfig(country).pipelineScale;
     const pipelineVal = ((scoreA * 14000) + (scoreB * 7500)) * scale;
     const formattedPipeline = formatCurrencyValue(pipelineVal, country);
@@ -508,10 +508,10 @@ export function App() {
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-lg text-white tracking-tight">Architect-Prospector AI</span>
                   <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">
-                    Auto-Discovery & Pitro CRM
+                    Auto-Discovery & Criahub CRM
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">Prospecção de Alto Ticket Sem Nicho Fixo • 3 Groq Keys Pool • Copilot ao Vivo</p>
+                <p className="text-[11px] text-slate-400">ProspecÃ§Ã£o de Alto Ticket Sem Nicho Fixo â€¢ 3 Groq Keys Pool â€¢ Copilot ao Vivo</p>
               </div>
             </div>
 
@@ -522,7 +522,7 @@ export function App() {
                 id="btn-open-country"
                 onClick={() => setIsCountryModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-900/50 hover:bg-indigo-900/70 text-indigo-100 border border-indigo-600/60 transition-colors"
-                title={`País de prospecção: ${country} • Moeda: ${getCurrencyConfig(country).code} (${getCurrencyConfig(country).symbol})`}
+                title={`PaÃ­s de prospecÃ§Ã£o: ${country} â€¢ Moeda: ${getCurrencyConfig(country).code} (${getCurrencyConfig(country).symbol})`}
               >
                 <span className="text-sm leading-none">{getCurrencyConfig(country).flag}</span>
                 <span className="hidden sm:inline">{country}</span>
@@ -547,10 +547,10 @@ export function App() {
                 id="btn-open-webhooks"
                 onClick={() => setIsWebhookModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-900/40 hover:bg-purple-900/60 text-purple-200 border border-purple-700/50 transition-colors"
-                title="Central de Automação Pitro CRM, Webhooks e n8n"
+                title="Central de AutomaÃ§Ã£o Criahub CRM, Webhooks e n8n"
               >
                 <Send className="w-3.5 h-3.5 text-purple-400" />
-                <span className="hidden sm:inline">Pitro CRM & Webhook</span>
+                <span className="hidden sm:inline">Criahub CRM & Webhook</span>
               </button>
 
               {/* Raw JSON Export */}
@@ -588,11 +588,11 @@ export function App() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2 truncate">
             <span className="font-bold text-white uppercase text-[10px] bg-indigo-800 px-2 py-0.5 rounded tracking-wider">
-              Meu Negócio:
+              Meu NegÃ³cio:
             </span>
             <strong className="text-indigo-200">{businessProfile.businessName}</strong>
             <span className="text-indigo-300 hidden md:inline">({businessProfile.websiteUrl || 'Site mapeado'})</span>
-            <span className="text-indigo-400 hidden lg:inline">• UVP: "{businessProfile.uvp.slice(0, 60)}..."</span>
+            <span className="text-indigo-400 hidden lg:inline">â€¢ UVP: "{businessProfile.uvp.slice(0, 60)}..."</span>
           </div>
 
           <button
@@ -618,10 +618,10 @@ export function App() {
               </span>
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
-                  Radar de Prospecção Inteligente & Auto-Discovery
+                  Radar de ProspecÃ§Ã£o Inteligente & Auto-Discovery
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Não é obrigatório digitar um nicho. Deixe em branco ou selecione um nicho recomendado para prospectar automaticamente clientes de alto ticket.
+                  NÃ£o Ã© obrigatÃ³rio digitar um nicho. Deixe em branco ou selecione um nicho recomendado para prospectar automaticamente clientes de alto ticket.
                 </p>
               </div>
             </div>
@@ -661,11 +661,11 @@ export function App() {
                 </div>
               </div>
 
-              {/* País */}
+              {/* PaÃ­s */}
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                   <Globe2 className="w-3.5 h-3.5 text-gray-500" />
-                  País
+                  PaÃ­s
                 </label>
                 <select
                   value={searchParams.country}
@@ -681,7 +681,7 @@ export function App() {
               {/* Estado / Distrito */}
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  {searchParams.country === 'Brasil' ? 'Estado' : 'Distrito / Região'}
+                  {searchParams.country === 'Brasil' ? 'Estado' : 'Distrito / RegiÃ£o'}
                 </label>
                 <select
                   value={searchParams.district}
@@ -721,7 +721,7 @@ export function App() {
                     className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
                   >
                     <Sparkles className="w-4 h-4" />
-                    {searchParams.keyword.trim() ? "Prospecção & Match" : "Auto Prospecção"}
+                    {searchParams.keyword.trim() ? "ProspecÃ§Ã£o & Match" : "Auto ProspecÃ§Ã£o"}
                   </button>
                 )}
               </div>
@@ -758,7 +758,7 @@ export function App() {
                   }`}
                 >
                   <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>🔥 Todos de Alto Ticket (Auto-Discovery)</span>
+                  <span>ðŸ”¥ Todos de Alto Ticket (Auto-Discovery)</span>
                 </button>
 
                 {highTicketNiches.map((nicheItem, idx) => (
@@ -790,8 +790,8 @@ export function App() {
               <div className="flex items-center gap-3">
                 <Loader2 className="w-5 h-5 text-indigo-600 animate-spin shrink-0" />
                 <div className="flex-1">
-                  <div className="font-bold text-xs">{loadingStep || 'Processando pipeline de inteligência autônoma...'}</div>
-                  <div className="text-[11px] text-indigo-700 mt-0.5">Executando Deep Matching e extração omnichannel de alta conversão.</div>
+                  <div className="font-bold text-xs">{loadingStep || 'Processando pipeline de inteligÃªncia autÃ´noma...'}</div>
+                  <div className="text-[11px] text-indigo-700 mt-0.5">Executando Deep Matching e extraÃ§Ã£o omnichannel de alta conversÃ£o.</div>
                 </div>
               </div>
             </div>
@@ -856,16 +856,16 @@ export function App() {
               </div>
             </div>
 
-            {/* Média ICP Match */}
+            {/* MÃ©dia ICP Match */}
             <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Média Match</span>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">MÃ©dia Match</span>
               <div className="mt-1 flex items-baseline gap-1.5">
                 <span className="text-2xl font-extrabold text-indigo-600">{stats.avgIcpScore}%</span>
                 <span className="text-xs text-gray-400 font-medium">qualidade</span>
               </div>
             </div>
 
-            {/* Intent Médio / Prioridade Alta */}
+            {/* Intent MÃ©dio / Prioridade Alta */}
             <div className="bg-white p-3.5 rounded-xl border border-orange-200 shadow-sm flex flex-col justify-between bg-orange-50/20">
               <span className="text-[11px] font-bold text-orange-800 uppercase tracking-wider flex items-center gap-1">
                 <AlertTriangle className="w-3.5 h-3.5 fill-orange-400 text-orange-600" />
@@ -885,7 +885,7 @@ export function App() {
               </span>
               <div className="mt-1 flex items-baseline gap-1.5">
                 <span className="text-2xl font-extrabold text-red-700">{stats.disqualifiedCount}</span>
-                <span className="text-xs text-red-600 font-medium">sem ação</span>
+                <span className="text-xs text-red-600 font-medium">sem aÃ§Ã£o</span>
               </div>
             </div>
 
@@ -948,7 +948,7 @@ export function App() {
                 >
                   <option value="all">Status: Todos</option>
                   <option value="new">Apenas Novos</option>
-                  <option value="contacted">Já Contactados</option>
+                  <option value="contacted">JÃ¡ Contactados</option>
                   <option value="qualified">Qualificados</option>
                 </select>
 
@@ -959,8 +959,8 @@ export function App() {
                   className="px-2.5 py-1.5 bg-slate-50 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 outline-none"
                 >
                   <option value="icp_score_desc">Ordenar: Maior ICP Score</option>
-                  <option value="rating_desc">Ordenar: Melhor Avaliação</option>
-                  <option value="reviews_desc">Ordenar: Mais Avaliações</option>
+                  <option value="rating_desc">Ordenar: Melhor AvaliaÃ§Ã£o</option>
+                  <option value="reviews_desc">Ordenar: Mais AvaliaÃ§Ãµes</option>
                   <option value="no_website">Priorizar Sem Website</option>
                 </select>
 
@@ -978,7 +978,7 @@ export function App() {
                     className={`p-1.5 rounded-md transition-all flex items-center gap-1 text-xs font-bold ${
                       viewMode === 'table' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600'
                     }`}
-                    title="Visão Tabela de Pipeline"
+                    title="VisÃ£o Tabela de Pipeline"
                   >
                     <TableIcon className="w-4 h-4" />
                     <span className="hidden sm:inline">Tabela</span>
@@ -989,7 +989,7 @@ export function App() {
                     className={`p-1.5 rounded-md transition-all flex items-center gap-1 text-xs font-bold ${
                       viewMode === 'cards' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600'
                     }`}
-                    title="Visão Cards / Dossiê"
+                    title="VisÃ£o Cards / DossiÃª"
                   >
                     <LayoutGrid className="w-4 h-4" />
                     <span className="hidden sm:inline">Cards</span>
@@ -1013,7 +1013,7 @@ export function App() {
                     className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-sm"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    Disparar p/ Pitro CRM / n8n
+                    Disparar p/ Criahub CRM / n8n
                   </button>
 
                   <button
@@ -1055,10 +1055,10 @@ export function App() {
             
             <div className="max-w-xl mx-auto space-y-2">
               <h3 className="text-xl font-extrabold text-gray-900">
-                Encontre Clientes de Alto Ticket & Alta Conversão Automaticamente
+                Encontre Clientes de Alto Ticket & Alta ConversÃ£o Automaticamente
               </h3>
               <p className="text-xs text-gray-600 leading-relaxed">
-                O Architect AI lê seu site e serviços para prospectar empresas com alto orçamento sem que você precise adivinhar termos ou nichos manuais.
+                O Architect AI lÃª seu site e serviÃ§os para prospectar empresas com alto orÃ§amento sem que vocÃª precise adivinhar termos ou nichos manuais.
               </p>
             </div>
 
@@ -1068,7 +1068,7 @@ export function App() {
                 className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl text-xs font-extrabold shadow-md transition-all inline-flex items-center justify-center gap-2"
               >
                 <Zap className="w-4 h-4 fill-current text-amber-300" />
-                Iniciar Prospecção Auto-Discovery de Alto Ticket
+                Iniciar ProspecÃ§Ã£o Auto-Discovery de Alto Ticket
               </button>
 
               <button

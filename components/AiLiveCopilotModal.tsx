@@ -7,7 +7,7 @@ import {
   ScreenShare, Video
 } from 'lucide-react';
 import { analyzeLiveConversationTurn, QUICK_AUDIO_SCENARIOS } from '../services/liveCopilotService';
-import { sendLiveCallAnalysisToPitroCrm, getPitroCrmConfig } from '../services/pitroCrmService';
+import { sendLiveCallAnalysisToCriahubCrm, getCriahubCrmConfig } from '../services/criahubCrmService';
 import { getSavedCountry, getCurrencyConfig } from '../services/countryService';
 
 interface AiLiveCopilotModalProps {
@@ -260,14 +260,14 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
     handleAnalyzeText(scenario.transcript, true);
   };
 
-  const handleSyncToPitroCrm = async () => {
+  const handleSyncToCriahubCrm = async () => {
     if (!currentAnalysis) return;
 
     setSyncStatus('syncing');
-    setSyncMessage('Enviando análise em tempo real para o Pitro CRM...');
+    setSyncMessage('Enviando análise em tempo real para o Criahub CRM...');
 
     try {
-      const result = await sendLiveCallAnalysisToPitroCrm(
+      const result = await sendLiveCallAnalysisToCriahubCrm(
         lead,
         currentAnalysis,
         inputText || 'Análise de conversação em tempo real'
@@ -282,11 +282,11 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
       }
     } catch (e: any) {
       setSyncStatus('error');
-      setSyncMessage(e.message || 'Erro ao sincronizar com Pitro CRM');
+      setSyncMessage(e.message || 'Erro ao sincronizar com Criahub CRM');
     }
   };
 
-  const config = getPitroCrmConfig();
+  const config = getCriahubCrmConfig();
   const cleanPhone = lead?.phone ? lead.phone.replace(/\D/g, '') : '';
 
   return (
@@ -756,11 +756,11 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
                   </div>
                 </div>
 
-                {/* Direct Sync to Pitro CRM Button */}
+                {/* Direct Sync to Criahub CRM Button */}
                 <div className="shrink-0 flex flex-col items-end gap-1">
                   <button
-                    id="btn-sync-copilot-pitro"
-                    onClick={handleSyncToPitroCrm}
+                    id="btn-sync-copilot-criahub"
+                    onClick={handleSyncToCriahubCrm}
                     disabled={syncStatus === 'syncing'}
                     className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-md transition-all flex items-center gap-2"
                   >
@@ -769,7 +769,7 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
                     ) : (
                       <Zap className="w-4 h-4 text-amber-300" />
                     )}
-                    <span>Salvar Análise no Pitro CRM</span>
+                    <span>Salvar Análise no Criahub CRM</span>
                   </button>
 
                   {syncStatus === 'success' && (
@@ -794,7 +794,7 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
         <div className="bg-slate-100 p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
-            <span>Pitro CRM Webhook Endpoint: <strong className="text-slate-800">{config.webhookUrl}</strong></span>
+            <span>Criahub CRM Webhook Endpoint: <strong className="text-slate-800">{config.webhookUrl}</strong></span>
           </div>
 
           <button

@@ -184,7 +184,7 @@ export async function analyzeLiveConversationTurn(
     `Quinta-feira às 11h00`
   ];
 
-  const pitroCrmNote = `[AI LIVE COPILOT] Sentimento: ${sentiment.toUpperCase()} (${sentimentConfidence}%) | Sinal de Compra: ${buyingSignalScore}% | Objeção Detectada: ${detectedIntent} | Gatilho: ${keyPsychologicalTrigger} | Próxima Ação: ${nextBestAction}`;
+  const criahubCrmNote = `[AI LIVE COPILOT] Sentimento: ${sentiment.toUpperCase()} (${sentimentConfidence}%) | Sinal de Compra: ${buyingSignalScore}% | Objeção Detectada: ${detectedIntent} | Gatilho: ${keyPsychologicalTrigger} | Próxima Ação: ${nextBestAction}`;
 
   return {
     timestamp: new Date().toISOString(),
@@ -202,7 +202,7 @@ export async function analyzeLiveConversationTurn(
     nextBestAction,
     suggestedMeetingTimes,
     isReadyForClosing,
-    pitroCrmNote
+    criahubCrmNote
   };
 }
 

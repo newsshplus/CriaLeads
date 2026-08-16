@@ -446,7 +446,7 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
   competitiveDifferentials: [
     "Agentes de IA hiper-humanizados que entendem o contexto completo do cliente e agendam reuniões em segundos",
     "Entrega turnkey completa (Site de Alta Performance + Automações + CRM + Roteiros de Vendas)",
-    "Integração nativa com WhatsApp Oficial, HubSpot, Pitro CRM, Evolution API e ERPs",
+    "Integração nativa com WhatsApp Oficial, HubSpot, CriahubCRM, Evolution API e ERPs",
     "Foco obstinado em ROI mensurável e aumento direto da receita do cliente"
   ],
   comparisonVectors: [

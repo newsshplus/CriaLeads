@@ -11,7 +11,7 @@ interface PipelineTableProps {
   selectedLeadIds: Set<string>;
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: () => void;
-  onOpenOmnichannel: (lead: Lead, tab?: 'pitro_crm' | 'cadence' | 'guardian' | 'objection_crusher' | 'whatsapp' | 'email' | 'call' | 'webhook' | 'bant' | 'tech') => void;
+  onOpenOmnichannel: (lead: Lead, tab?: 'criahub_crm' | 'cadence' | 'guardian' | 'objection_crusher' | 'whatsapp' | 'email' | 'call' | 'webhook' | 'bant' | 'tech') => void;
   onUpdateStatus: (id: string, status: Lead['status']) => void;
   onDelete: (id: string) => void;
   onOpenLiveCopilot?: (lead: Lead) => void;
@@ -288,11 +288,11 @@ const PipelineTable: React.FC<PipelineTableProps> = ({
                   {/* Omnichannel Triggers */}
                   <td className="py-3.5 px-4 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end space-x-1.5">
-                      {/* Pitro CRM & Evolution API Hub */}
+                      {/* Criahub CRM & CriahubADS Hub */}
                       <button
-                        onClick={() => onOpenOmnichannel(lead, 'pitro_crm')}
+                        onClick={() => onOpenOmnichannel(lead, 'criahub_crm')}
                         className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded border border-purple-300 transition-colors"
-                        title="Disparar para Pitro CRM & Evolution API"
+                        title="Disparar para Criahub CRM & CriahubADS"
                       >
                         <Zap className="w-3.5 h-3.5 text-purple-600" />
                       </button>
