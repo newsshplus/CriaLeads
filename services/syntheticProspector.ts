@@ -2,6 +2,7 @@ import { Lead, BusinessProfile, IcpTier, IntentPriority } from '../types';
 import { buildDeliverabilityGuardian, buildEvolutionAndResendPayloads } from './deliverabilityService';
 import { buildObjectionCrusherMatrix } from './objectionCrusherService';
 import { buildCadenceMaster } from './cadenceService';
+import { getCurrencyConfig } from './countryService';
 
 /**
  * Autonomous Synthetic Prospector Engine (Free & Resilient Fallback)
@@ -181,8 +182,11 @@ export function generateAutonomousFallbackLeads(
   businessProfile: BusinessProfile,
   count = 8
 ): Lead[] {
-  const city = location && location.trim() !== '' ? location : (district && district !== 'Todas' ? district : 'São Paulo');
   const targetCountry = country || 'Brasil';
+  const city = location && location.trim() !== '' ? location : (district && district !== 'Todas' ? district : getCurrencyConfig(targetCountry).defaultCity);
+
+  // Moeda local do país: ajusta os valores de budget/revenue dos templates
+  const currencySymbol = getCurrencyConfig(targetCountry).symbol;
 
   const cleanBusinessName = businessProfile.businessName || 'Nossa Empresa';
   const cleanUvp = businessProfile.uvp || 'Automação inteligente e vendas B2B';
@@ -190,7 +194,18 @@ export function generateAutonomousFallbackLeads(
   const leads: Lead[] = [];
 
   for (let i = 0; i < count; i++) {
-    const { tpl, categoryName } = getTemplateForKeyword(keyword, i);
+    const baseTpl = getTemplateForKeyword(keyword, i);
+    const replaceCur = (s: string) => s.replace(/R\$/g, currencySymbol);
+    const tpl = {
+      ...baseTpl.tpl,
+      pains: baseTpl.tpl.pains.map(replaceCur),
+      techFlaws: baseTpl.tpl.techFlaws.map(replaceCur),
+      tools: baseTpl.tpl.tools,
+      decisionRoles: baseTpl.tpl.decisionRoles,
+      budgetRange: replaceCur(baseTpl.tpl.budgetRange),
+      revenueRange: replaceCur(baseTpl.tpl.revenueRange)
+    };
+    const categoryName = baseTpl.categoryName;
     const prefix = tpl.prefixes[i % tpl.prefixes.length];
     const suffix = tpl.suffixes[(i * 2 + 1) % tpl.suffixes.length];
     const cleanKeyTitle = (keyword && keyword !== 'auto' && keyword !== 'alto ticket' && keyword !== 'todos')

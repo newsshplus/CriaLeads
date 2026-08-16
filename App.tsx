@@ -13,9 +13,13 @@ import {
 } from './types';
 import { 
   DEFAULT_BUSINESS_PROFILE, SUPPORTED_COUNTRIES, BRAZIL_STATES, 
-  PORTUGAL_DISTRICTS, BUSINESS_CATEGORIES, DEFAULT_FILTERS,
-  DEFAULT_HIGH_TICKET_NICHES
+  PORTUGAL_DISTRICTS, BUSINESS_CATEGORIES, DEFAULT_FILTERS
 } from './constants';
+import {
+  getSavedCountry, saveCountry, hasSavedCountryChoice,
+  getCurrencyConfig, formatCurrencyValue,
+  getHighTicketNichesForCountry, getBusinessProfileForCountry
+} from './services/countryService';
 import { searchAndScoreLeads } from './services/geminiService';
 import { 
   getSavedBusinessProfile, saveBusinessProfile, 
@@ -33,6 +37,7 @@ import WebhookAutomationModal from './components/WebhookAutomationModal';
 import JsonViewerModal from './components/JsonViewerModal';
 import ScrapingPipelineBanner from './components/ScrapingPipelineBanner';
 import AiLiveCopilotModal from './components/AiLiveCopilotModal';
+import CountrySelectModal from './components/CountrySelectModal';
 
 // --- Utilitários de deduplicação/merge de leads ---
 const normalizeName = (name: string) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -77,26 +82,71 @@ function mergeLeadLists(newLeads: Lead[], existing: Lead[]): Lead[] {
 }
 
 export function App() {
+  // Country & Currency State (persisted; onboarding pergunta na primeira abertura)
+  const [country, setCountry] = useState<string>(() => getSavedCountry());
+  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
+
   // Business Profile & Matching State
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile>(() => {
     const saved = getSavedBusinessProfile();
+    const initialCountry = getSavedCountry();
+    const isDefaultProfile = saved.businessName === DEFAULT_BUSINESS_PROFILE.businessName;
+    if (isDefaultProfile) {
+      return getBusinessProfileForCountry(initialCountry);
+    }
     if (!saved.recommendedHighTicketNiches || saved.recommendedHighTicketNiches.length === 0) {
-      saved.recommendedHighTicketNiches = DEFAULT_HIGH_TICKET_NICHES;
+      saved.recommendedHighTicketNiches = getHighTicketNichesForCountry(initialCountry);
     }
     return saved;
   });
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Search State
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    keyword: '', // Empty by default -> Auto-Discovery Mode (High Ticket Multi-Nicho)
-    country: 'Brasil',
-    city: 'São Paulo',
-    district: 'Todas',
-    radius: 15,
-    strictMode: true,
-    tierFilter: 'ALL'
+  const [searchParams, setSearchParams] = useState<SearchParams>(() => {
+    const c = getSavedCountry();
+    return {
+      keyword: '', // Empty by default -> Auto-Discovery Mode (High Ticket Multi-Nicho)
+      country: c,
+      city: getCurrencyConfig(c).defaultCity,
+      district: 'Todas',
+      radius: 15,
+      strictMode: true,
+      tierFilter: 'ALL'
+    };
   });
+
+  // Onboarding: na primeira abertura, pergunta qual país o usuário quer prospectar
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!hasSavedCountryChoice()) {
+        setIsCountryModalOpen(true);
+      }
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const applyCountry = (newCountry: string) => {
+    const config = getCurrencyConfig(newCountry);
+    setCountry(newCountry);
+    saveCountry(newCountry);
+    setSearchParams(prev => ({
+      ...prev,
+      country: newCountry,
+      city: config.defaultCity,
+      district: 'Todas'
+    }));
+    setBusinessProfile(prev => {
+      const isDefaultProfile = prev.businessName === DEFAULT_BUSINESS_PROFILE.businessName;
+      const next = {
+        ...prev,
+        recommendedHighTicketNiches: getHighTicketNichesForCountry(newCountry)
+      };
+      if (isDefaultProfile) {
+        next.ticketMedio = getBusinessProfileForCountry(newCountry).ticketMedio;
+      }
+      return next;
+    });
+  };
 
   // Leads State
   const [leads, setLeads] = useState<Lead[]>(() => {
@@ -397,7 +447,7 @@ export function App() {
         leadsWithoutWebsite: 0,
         leadsWithPhone: 0,
         leadsWithEmail: 0,
-        estimatedPipelineValue: "R$ 0"
+        estimatedPipelineValue: formatCurrencyValue(0, country)
       };
     }
 
@@ -413,9 +463,10 @@ export function App() {
     const mediumPriority = leads.filter(l => l.intentPriority === 'MEDIUM').length;
     const disqualified = leads.filter(l => l.intentPriority === 'DISQUALIFIED' || l.icpTier === 'SCORE_C').length;
 
-    // Approximate pipeline value calculation (Score A * 14.000 + Score B * 7.500)
-    const pipelineVal = (scoreA * 14000) + (scoreB * 7500);
-    const formattedPipeline = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(pipelineVal);
+    // Approximate pipeline value calculation (Score A * 14.000 + Score B * 7.500, escalado pela moeda do país)
+    const scale = getCurrencyConfig(country).pipelineScale;
+    const pipelineVal = ((scoreA * 14000) + (scoreB * 7500)) * scale;
+    const formattedPipeline = formatCurrencyValue(pipelineVal, country);
 
     return {
       totalLeads: total,
@@ -434,11 +485,11 @@ export function App() {
       leadsWithEmail: withEmail,
       estimatedPipelineValue: formattedPipeline
     };
-  }, [leads]);
+  }, [leads, country]);
 
   const highTicketNiches = businessProfile.recommendedHighTicketNiches?.length 
     ? businessProfile.recommendedHighTicketNiches 
-    : DEFAULT_HIGH_TICKET_NICHES;
+    : getHighTicketNichesForCountry(country);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900 selection:bg-indigo-500 selection:text-white">
@@ -466,6 +517,20 @@ export function App() {
 
             {/* Quick Action Navigation */}
             <div className="flex items-center gap-2">
+              {/* Country & Currency Selector */}
+              <button
+                id="btn-open-country"
+                onClick={() => setIsCountryModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-900/50 hover:bg-indigo-900/70 text-indigo-100 border border-indigo-600/60 transition-colors"
+                title={`País de prospecção: ${country} • Moeda: ${getCurrencyConfig(country).code} (${getCurrencyConfig(country).symbol})`}
+              >
+                <span className="text-sm leading-none">{getCurrencyConfig(country).flag}</span>
+                <span className="hidden sm:inline">{country}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-800/80 text-indigo-200 font-black">
+                  {getCurrencyConfig(country).code}
+                </span>
+              </button>
+
               {/* Business Profile / Deep Matching Button */}
               <button
                 id="btn-open-profile"
@@ -1067,6 +1132,14 @@ export function App() {
         onLeadUpdated={(updatedLead) => {
           setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
         }}
+      />
+
+      {/* Country & Currency Selector Modal (onboarding + troca a qualquer momento) */}
+      <CountrySelectModal
+        isOpen={isCountryModalOpen}
+        onClose={() => setIsCountryModalOpen(false)}
+        onSelect={applyCountry}
+        currentCountry={country}
       />
 
       {/* Business Profile & Deep Matching Configurator Modal */}

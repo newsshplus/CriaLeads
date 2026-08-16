@@ -3,10 +3,12 @@ import { Lead, BusinessProfile, AiLiveCopilotAnalysis, LiveConversationTurn } fr
 import { 
   X, Mic, MicOff, Send, Sparkles, PhoneCall, MessageSquare, 
   Volume2, VolumeX, Copy, Check, Zap, AlertTriangle, ShieldCheck, 
-  Flame, TrendingUp, Calendar, ArrowRight, Play, RefreshCw, Layers
+  Flame, TrendingUp, Calendar, ArrowRight, Play, RefreshCw, Layers,
+  ScreenShare, Video
 } from 'lucide-react';
 import { analyzeLiveConversationTurn, QUICK_AUDIO_SCENARIOS } from '../services/liveCopilotService';
 import { sendLiveCallAnalysisToPitroCrm, getPitroCrmConfig } from '../services/pitroCrmService';
+import { getSavedCountry, getCurrencyConfig } from '../services/countryService';
 
 interface AiLiveCopilotModalProps {
   isOpen: boolean;
@@ -24,7 +26,7 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
   onLeadUpdated
 }) => {
   const [inputText, setInputText] = useState('');
-  const [activeChannel, setActiveChannel] = useState<'audio_call' | 'whatsapp_audio' | 'whatsapp_text'>('audio_call');
+  const [activeChannel, setActiveChannel] = useState<'audio_call' | 'whatsapp_audio' | 'whatsapp_text' | 'video_call'>('audio_call');
   const [isListening, setIsListening] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -39,6 +41,16 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
   // Speech Recognition Ref
   const recognitionRef = useRef<any>(null);
 
+  // Mic & Screen Permission State (prospecção por chamada, áudio ou vídeo)
+  const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+  const [screenPermission, setScreenPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+  const [permissionBusy, setPermissionBusy] = useState<'none' | 'mic' | 'screen'>('none');
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+
+  // País selecionado -> idioma de voz do copiloto (pt-PT, pt-BR, en-US, es-ES...)
+  const speechLang = getCurrencyConfig(getSavedCountry()).speechLang;
+
   // Initialize or reset analysis on lead change or open
   useEffect(() => {
     if (isOpen && lead) {
@@ -50,13 +62,23 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
     }
   }, [isOpen, lead]);
 
-  // Clean up speech recognition on close
+  // Clean up speech recognition & media streams on close
   useEffect(() => {
     if (!isOpen) {
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch {}
       }
       setIsListening(false);
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach(t => t.stop());
+        micStreamRef.current = null;
+      }
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(t => t.stop());
+        screenStreamRef.current = null;
+      }
+      setMicPermission('unknown');
+      setScreenPermission('unknown');
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
@@ -80,7 +102,7 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'pt-BR';
+    utterance.lang = speechLang;
     utterance.rate = 1.05;
     utterance.pitch = 1.0;
     utterance.onend = () => setIsSpeaking(false);
@@ -108,7 +130,7 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = 'pt-BR';
+      recognition.lang = speechLang;
       recognition.continuous = true;
       recognition.interimResults = true;
 
@@ -144,6 +166,59 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
     } catch (e) {
       console.error("Speech recognition startup error:", e);
       setIsListening(false);
+    }
+  };
+
+  // Permissão explícita de microfone (obrigatória em chamadas/áudio/vídeo)
+  const handleRequestMicPermission = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicPermission('denied');
+      alert("Seu navegador/ambiente não oferece acesso a microfone (getUserMedia). Use a digitação ou cole o áudio transcrito.");
+      return;
+    }
+    setPermissionBusy('mic');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Mantém o stream ativo para o copiloto; libera as trilhas apenas ao fechar o modal
+      if (micStreamRef.current) micStreamRef.current.getTracks().forEach(t => t.stop());
+      micStreamRef.current = stream;
+      setMicPermission('granted');
+    } catch (e: any) {
+      console.warn("Microfone negado:", e?.name || e);
+      setMicPermission('denied');
+      if (e?.name === 'NotAllowedError') {
+        alert("Permissão de microfone negada. Para o AI Live Copilot ajudar em chamadas/áudio, autorize o microfone nas configurações do navegador (ou no AI Studio).");
+      }
+    } finally {
+      setPermissionBusy('none');
+    }
+  };
+
+  // Permissão explícita de tela (prospecção por vídeo: copiloto lê a tela em tempo real)
+  const handleRequestScreenPermission = async () => {
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      setScreenPermission('denied');
+      alert("Seu navegador/ambiente não oferece compartilhamento de tela (getDisplayMedia).");
+      return;
+    }
+    setPermissionBusy('screen');
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = stream;
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.onended = () => {
+          if (screenStreamRef.current === stream) screenStreamRef.current = null;
+          setScreenPermission('unknown');
+        };
+      }
+      setScreenPermission('granted');
+    } catch (e: any) {
+      console.warn("Compartilhamento de tela cancelado:", e?.name || e);
+      setScreenPermission(e?.name === 'NotAllowedError' ? 'denied' : 'unknown');
+    } finally {
+      setPermissionBusy('none');
     }
   };
 
@@ -276,7 +351,85 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50 space-y-6">
-          
+
+          {/* 0. Mic & Screen Permissions (Chamada / Áudio / Vídeo) */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+                  <Mic className="w-4 h-4" />
+                </span>
+                <div>
+                  <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    Permissões de Microfone & Tela (Chamada, Áudio ou Vídeo)
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Conceda o acesso para o copiloto escutar a chamada e ler a tela durante a prospecção ao vivo.
+                  </span>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-wider">
+                Idioma de voz: {speechLang} ({getSavedCountry()})
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Microphone */}
+              <button
+                id="btn-copilot-perm-mic"
+                onClick={handleRequestMicPermission}
+                disabled={permissionBusy !== 'none'}
+                className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${
+                  micPermission === 'granted'
+                    ? 'bg-emerald-50 border-emerald-400'
+                    : micPermission === 'denied'
+                      ? 'bg-rose-50 border-rose-300'
+                      : 'bg-slate-50 border-slate-200 hover:border-indigo-300'
+                }`}
+              >
+                <span className={`p-2 rounded-lg ${micPermission === 'granted' ? 'bg-emerald-100 text-emerald-700' : micPermission === 'denied' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                  {micPermission === 'granted' ? <Check className="w-4 h-4" /> : micPermission === 'denied' ? <AlertTriangle className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </span>
+                <span className="flex-1">
+                  <span className="block text-xs font-black text-slate-900">🎙️ Microfone</span>
+                  <span className="block text-[11px] text-slate-500">
+                    {micPermission === 'granted' ? 'Acesso concedido — pronto para escutar a chamada/áudio.' : micPermission === 'denied' ? 'Negado. Autorize nas configurações do navegador/AI Studio.' : 'Permitir acesso ao microfone da chamada.'}
+                  </span>
+                </span>
+                {permissionBusy === 'mic' && <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />}
+              </button>
+
+              {/* Screen */}
+              <button
+                id="btn-copilot-perm-screen"
+                onClick={handleRequestScreenPermission}
+                disabled={permissionBusy !== 'none'}
+                className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${
+                  screenPermission === 'granted'
+                    ? 'bg-emerald-50 border-emerald-400'
+                    : screenPermission === 'denied'
+                      ? 'bg-rose-50 border-rose-300'
+                      : 'bg-slate-50 border-slate-200 hover:border-indigo-300'
+                }`}
+              >
+                <span className={`p-2 rounded-lg ${screenPermission === 'granted' ? 'bg-emerald-100 text-emerald-700' : screenPermission === 'denied' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                  {screenPermission === 'granted' ? <Check className="w-4 h-4" /> : screenPermission === 'denied' ? <AlertTriangle className="w-4 h-4" /> : <ScreenShare className="w-4 h-4" />}
+                </span>
+                <span className="flex-1">
+                  <span className="block text-xs font-black text-slate-900">🖥️ Ler a Tela (Vídeo/Call)</span>
+                  <span className="block text-[11px] text-slate-500">
+                    {screenPermission === 'granted' ? 'Tela compartilhada — copiloto pode ler a tela ao vivo.' : screenPermission === 'denied' ? 'Negado. Autorize o compartilhamento de tela.' : 'Compartilhar tela para análise durante vídeo.'}
+                  </span>
+                </span>
+                {permissionBusy === 'screen' && <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />}
+              </button>
+            </div>
+
+            <div className="text-[11px] text-slate-500 leading-relaxed bg-amber-50/60 border border-amber-200 rounded-lg p-2.5">
+              <strong className="text-amber-800">🔒 Privacidade:</strong> o acesso é solicitado apenas quando você abre o Copiloto e é usado exclusivamente durante a ligação/áudio/vídeo. Nada é gravado — tudo é analisado em tempo real e encerrado ao fechar o Copiloto.
+            </div>
+          </div>
+
           {/* Audio Input & Speech Recognition Section */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
             
@@ -316,6 +469,19 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
                 >
                   <Layers className="w-3.5 h-3.5" />
                   Texto WhatsApp
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveChannel('video_call');
+                    handleRequestScreenPermission();
+                    handleRequestMicPermission();
+                  }}
+                  className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
+                    activeChannel === 'video_call' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Video className="w-3.5 h-3.5" />
+                  Vídeo Call
                 </button>
               </div>
             </div>

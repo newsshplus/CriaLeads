@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { AiEngineConfig, BusinessProfile, GroqKeyStatus, GeminiKeyStatus, HighTicketNicheRecommendation } from "../types";
 import { DEFAULT_AI_ENGINE_CONFIG, DEFAULT_HIGH_TICKET_NICHES } from "../constants";
+import { getSavedCountry, getCurrencyConfig } from "./countryService";
 
 const AI_CONFIG_KEY = "architect_ai_engine_config_v2";
 
@@ -342,6 +343,9 @@ export async function scanWebsiteAndExtractProfile(
   signal?: AbortSignal
 ): Promise<BusinessProfile> {
   const cleanUrl = websiteUrl.trim().startsWith("http") ? websiteUrl.trim() : `https://${websiteUrl.trim()}`;
+
+  // Moeda do país selecionado pelo usuário (padrão: Portugal / Euro)
+  const currencySymbol = getCurrencyConfig(getSavedCountry()).symbol;
   
   const systemPrompt = `
 Você é o "Architect Reverse-ICP Scanner & Business Intelligence Extractor", especialista em análise de negócios, posicionamento de mercado e identificação de nichos de alto ticket para vendas B2B.
@@ -357,16 +361,16 @@ INSTRUÇÕES DE ANÁLISE:
 1. Identifique o nome comercial mais provável da empresa e seu posicionamento.
 2. Liste todos os serviços, produtos e soluções que essa empresa entrega (sites, automações de IA, tráfego, CRM, consultoria, software, design, etc.).
 3. Formule uma Proposta Única de Valor (UVP) assertiva e de alto impacto que eles podem apresentar a novos clientes.
-4. Defina a faixa ideal de Ticket Médio (ex: "R$ 8.000 a R$ 35.000 / projeto ou MRR de R$ 4.500/mês").
+4. Defina a faixa ideal de Ticket Médio na moeda do país do usuário (${getSavedCountry()}, símbolo "${currencySymbol}") (ex: "${currencySymbol} 8.000 a ${currencySymbol} 35.000 / projeto ou MRR de ${currencySymbol} 4.500/mês").
 5. Identifique as 4 principais dores de mercado que essa empresa resolve.
 6. Identifique 4 diferenciais competitivos fortes.
 7. O MAIS IMPORTANTE: Elabore 5 "Nichos de Alto Ticket & Alta Conversão" ideais para essa empresa prospectar e vender todos os seus serviços com facilidade.
    Para cada nicho, forneça:
    - niche: Nome do nicho (ex: "Clínicas Médicas & Cirurgia Plástica de Alto Padrão")
    - category: Categoria geral
-   - tag: Tag de destaque (ex: "🔥 R$ 10k-35k", "💎 Alta Conversão", "🏢 B2B Enterprise")
+   - tag: Tag de destaque (ex: "🔥 ${currencySymbol} 10k-35k", "💎 Alta Conversão", "🏢 B2B Enterprise")
    - whyGoodMatch: Por que esse nicho tem alto poder aquisitivo e precisa urgentemente de todos os serviços do usuário.
-   - estimatedTicket: Faixa de valor que esse nicho paga com facilidade.
+   - estimatedTicket: Faixa de valor (em ${getSavedCountry()}) que esse nicho paga com facilidade.
    - criticalGaps: 3 dores ou falhas crônicas que esse nicho tem na presença digital e atendimento.
    - suggestedOfferBundle: O pacote de serviços exato para vender para eles (ex: "Site 3.0 + SDR IA no WhatsApp + Automação de Agendamento").
 
@@ -374,7 +378,7 @@ RETORNE ESTRITAMENTE EM JSON FORMATO:
 {
   "businessName": "Nome da Empresa",
   "servicesDescription": "Descrição detalhada dos serviços oferecidos",
-  "ticketMedio": "R$ 8.000 a R$ 35.000 / projeto",
+  "ticketMedio": "${currencySymbol} 8.000 a ${currencySymbol} 35.000 / projeto",
   "icpTarget": "Descrição do Perfil de Cliente Ideal de Alto Ticket",
   "uvp": "Proposta Única de Valor",
   "solvedPains": ["Dor 1", "Dor 2", "Dor 3", "Dor 4"],
@@ -386,9 +390,9 @@ RETORNE ESTRITAMENTE EM JSON FORMATO:
       "id": "niche-1",
       "niche": "Nome do Nicho de Alto Ticket 1",
       "category": "Categoria",
-      "tag": "🔥 R$ 15k a R$ 40k",
+      "tag": "🔥 ${currencySymbol} 15k a ${currencySymbol} 40k",
       "whyGoodMatch": "Motivo estratégico da correlação",
-      "estimatedTicket": "R$ 15.000 a R$ 40.000",
+      "estimatedTicket": "${currencySymbol} 15.000 a ${currencySymbol} 40.000",
       "criticalGaps": ["Gap 1", "Gap 2", "Gap 3"],
       "suggestedOfferBundle": "Pacote Completo de Soluções"
     }
@@ -423,7 +427,7 @@ RETORNE ESTRITAMENTE EM JSON FORMATO:
           category: n.category || "B2B Corporativo",
           tag: n.tag || "🔥 Alto Ticket",
           whyGoodMatch: n.whyGoodMatch || "Alta capacidade de investimento e necessidade direta de automação e novos canais.",
-          estimatedTicket: n.estimatedTicket || "R$ 10.000 a R$ 30.000",
+          estimatedTicket: n.estimatedTicket || `${currencySymbol} 10.000 a ${currencySymbol} 30.000`,
           criticalGaps: Array.isArray(n.criticalGaps) ? n.criticalGaps : ["Processos manuais", "Demora no atendimento", "Presença digital defasada"],
           suggestedOfferBundle: n.suggestedOfferBundle || "Implementação Completa: Presença Digital + Automação IA + CRM"
         }))
@@ -433,7 +437,7 @@ RETORNE ESTRITAMENTE EM JSON FORMATO:
       websiteUrl: cleanUrl,
       businessName: parsed.businessName || existingProfile?.businessName || "Meu Negócio Digital",
       servicesDescription: parsed.servicesDescription || existingProfile?.servicesDescription || "Criação de Sites, Automações de IA, CRM e Vendas B2B",
-      ticketMedio: parsed.ticketMedio || existingProfile?.ticketMedio || "R$ 8.000 a R$ 35.000 / projeto",
+      ticketMedio: parsed.ticketMedio || existingProfile?.ticketMedio || `${currencySymbol} 8.000 a ${currencySymbol} 35.000 / projeto`,
       icpTarget: parsed.icpTarget || existingProfile?.icpTarget || "Empresas de Alto Ticket com necessidade de modernização digital e processos de vendas",
       uvp: parsed.uvp || "Aceleramos as vendas e modernizamos a operação de empresas de alto ticket com sites de alta performance e automações com IA.",
       solvedPains: Array.isArray(parsed.solvedPains) && parsed.solvedPains.length > 0 ? parsed.solvedPains : [
@@ -475,7 +479,7 @@ RETORNE ESTRITAMENTE EM JSON FORMATO:
       websiteUrl: cleanUrl,
       businessName: existingProfile?.businessName || domainName,
       servicesDescription: existingProfile?.servicesDescription || "Criação de Sites Modernos, Automações de IA, SDRs de WhatsApp e Otimização Comercial",
-      ticketMedio: existingProfile?.ticketMedio || "R$ 8.000 - R$ 35.000 / projeto",
+      ticketMedio: existingProfile?.ticketMedio || `${currencySymbol} 8.000 - ${currencySymbol} 35.000 / projeto`,
       icpTarget: existingProfile?.icpTarget || "Empresas com ticket elevado e alto volume de clientes que precisam modernizar sua operação de vendas",
       uvp: "Implementamos infraestrutura completa de presença digital, automações e IA para converter prospects em clientes de alto ticket.",
       solvedPains: [

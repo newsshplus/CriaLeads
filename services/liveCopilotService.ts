@@ -8,7 +8,7 @@ export async function analyzeLiveConversationTurn(
   transcript: string,
   lead?: Lead | null,
   businessProfile?: BusinessProfile | null,
-  channel: 'audio_call' | 'whatsapp_audio' | 'whatsapp_text' = 'audio_call'
+  channel: 'audio_call' | 'whatsapp_audio' | 'whatsapp_text' | 'video_call' = 'audio_call'
 ): Promise<AiLiveCopilotAnalysis> {
   const cleanText = transcript.trim().toLowerCase();
 

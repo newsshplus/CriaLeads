@@ -10,6 +10,7 @@ import { analyzeBusinessProfile } from '../services/geminiService';
 import { saveBusinessProfile } from '../services/storageService';
 import { getAiConfig, saveAiConfig, testGroqKey } from '../services/aiProviderService';
 import { DEFAULT_HIGH_TICKET_NICHES, GEMINI_MODELS } from '../constants';
+import { getSavedCountry, getCurrencyConfig } from '../services/countryService';
 
 interface BusinessProfileModalProps {
   isOpen: boolean;
@@ -297,7 +298,7 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
                     type="text"
                     value={formData.ticketMedio}
                     onChange={e => setFormData({ ...formData, ticketMedio: e.target.value })}
-                    placeholder="Ex: R$ 8.000 a R$ 35.000 / projeto (ou R$ 3.500/mês)"
+                    placeholder={`Ex: ${getCurrencyConfig(getSavedCountry()).symbol} 8.000 a ${getCurrencyConfig(getSavedCountry()).symbol} 35.000 / projeto (ou ${getCurrencyConfig(getSavedCountry()).symbol} 3.500/mês) — moeda de ${getSavedCountry()}`}
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   />
                 </div>

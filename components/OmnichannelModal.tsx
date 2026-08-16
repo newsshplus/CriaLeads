@@ -12,6 +12,7 @@ import { buildDeliverabilityGuardian, buildEvolutionAndResendPayloads } from '..
 import { buildObjectionCrusherMatrix, generateGoogleCalendarUrl } from '../services/objectionCrusherService';
 import { buildCadenceMaster } from '../services/cadenceService';
 import { sendLeadToPitroCrm, buildPitroCrmPayload, getPitroCrmConfig } from '../services/pitroCrmService';
+import { getSavedCountry, formatCurrencySymbol } from '../services/countryService';
 
 interface OmnichannelModalProps {
   lead: Lead | null;
@@ -1811,7 +1812,7 @@ const OmnichannelModal: React.FC<OmnichannelModalProps> = ({
                   <div className="space-y-2 text-xs">
                     <div>
                       <span className="text-gray-500 font-semibold block">Orçamento Estimado p/ Solução:</span>
-                      <p className="font-bold text-gray-900 text-sm mt-0.5">{bant?.budget?.estimatedBudget || 'R$ 15.000 a R$ 40.000 / mês'}</p>
+                      <p className="font-bold text-gray-900 text-sm mt-0.5">{bant?.budget?.estimatedBudget || `${formatCurrencySymbol(getSavedCountry())} 15.000 a ${formatCurrencySymbol(getSavedCountry())} 40.000 / mês`}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-2 pt-1 border-t border-gray-100 text-[11px]">
                       <div>
@@ -1820,7 +1821,7 @@ const OmnichannelModal: React.FC<OmnichannelModalProps> = ({
                       </div>
                       <div>
                         <span className="text-gray-400">Faturamento Anual:</span>
-                        <p className="font-semibold text-gray-700">{bant?.budget?.estimatedRevenue || 'R$ 3M - R$ 8M / ano'}</p>
+                        <p className="font-semibold text-gray-700">{bant?.budget?.estimatedRevenue || `${formatCurrencySymbol(getSavedCountry())} 3M - ${formatCurrencySymbol(getSavedCountry())} 8M / ano`}</p>
                       </div>
                     </div>
                   </div>

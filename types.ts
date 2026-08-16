@@ -278,7 +278,7 @@ export interface PitroCrmConfig {
 export interface LiveConversationTurn {
   id: string;
   sender: 'lead' | 'agent' | 'system';
-  channel: 'audio_call' | 'whatsapp_audio' | 'whatsapp_text';
+  channel: 'audio_call' | 'whatsapp_audio' | 'whatsapp_text' | 'video_call';
   text: string;
   timestamp: string;
   sentiment?: 'positivo' | 'neutro' | 'cético' | 'hostil' | 'interessado';
@@ -357,6 +357,17 @@ export interface Lead {
   lastContactedAt?: string;
   notes?: string;
   source?: 'ai' | 'synthetic';
+}
+
+export interface CurrencyConfig {
+  code: string;
+  symbol: string;
+  locale: string;
+  speechLang: string;
+  defaultCity: string;
+  flag: string;
+  label: string;
+  pipelineScale: number;
 }
 
 export interface HighTicketNicheRecommendation {

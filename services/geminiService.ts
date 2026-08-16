@@ -4,6 +4,7 @@ import { buildObjectionCrusherMatrix } from "./objectionCrusherService";
 import { buildCadenceMaster } from "./cadenceService";
 import { generateAutonomousFallbackLeads } from "./syntheticProspector";
 import { executeAiCompletion, scanWebsiteAndExtractProfile } from "./aiProviderService";
+import { getCurrencyConfig } from "./countryService";
 
 const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -39,6 +40,10 @@ export async function searchAndScoreLeads(
 ): Promise<{ leads: Lead[]; engineStatus: ScrapingEngineStatus }> {
   const startTime = Date.now();
 
+  // Moeda e contexto monetário do país de prospecção
+  const cur = getCurrencyConfig(country);
+  const currencySymbol = cur.symbol;
+
   let locationContext = location && location.trim() !== "" 
     ? `${location}, ${district && district !== 'Todas' ? district + ', ' : ''}${country}`
     : (district && district !== 'Todas' ? `${district}, ${country}` : country);
@@ -48,11 +53,11 @@ export async function searchAndScoreLeads(
   const targetNichesDescription = isAutoHighTicket
     ? (businessProfile.recommendedHighTicketNiches && businessProfile.recommendedHighTicketNiches.length > 0
         ? businessProfile.recommendedHighTicketNiches.map(n => `• ${n.niche} (${n.tag}) - Motivo: ${n.whyGoodMatch} | Ticket estimado: ${n.estimatedTicket}`).join("\n")
-        : `• Clínicas Médicas & Odonto Estética de Alto Padrão (R$ 10k-35k)
-• Escritórios de Advocacia Corporativa & Tributária (R$ 15k-60k)
-• Incorporadoras e Imobiliárias de Alto Padrão (R$ 20k-80k)
-• Indústrias & Distribuidores B2B (R$ 25k-100k)
-• Consultorias Empresariais & BPO (R$ 12k-45k)`)
+        : `• Clínicas Médicas & Odonto Estética de Alto Padrão (${currencySymbol} 10k-35k)
+• Escritórios de Advocacia Corporativa & Tributária (${currencySymbol} 15k-60k)
+• Incorporadoras e Imobiliárias de Alto Padrão (${currencySymbol} 20k-80k)
+• Indústrias & Distribuidores B2B (${currencySymbol} 25k-100k)
+• Consultorias Empresariais & BPO (${currencySymbol} 12k-45k)`)
     : `• ${keyword}`;
 
   const prompt = `
@@ -81,7 +86,7 @@ ${targetNichesDescription}`
 PARA CADA EMPRESA E LEAD FORNECIDO, EXECUTE A ANÁLISE PROFUNDA DE ENRIQUECIMENTO E DIAGNÓSTICO:
 
 1. BANT+ ENRICHMENT:
-   - Budget: Orçamento estimado com base em porte, número de funcionários e faturamento presumido (ex: "R$ 30k - R$ 80k/mês em marketing/tecnologia", "Faturamento anual presumido R$ 3M - R$ 8M", Rating: "Alto" | "Médio" | "Baixo").
+   - Budget: Orçamento estimado com base em porte, número de funcionários e faturamento presumido EM MOEDA LOCAL DO PAÍS (${country}, ${cur.code}): ex: "${currencySymbol} 30k - ${currencySymbol} 80k/mês em marketing/tecnologia", "Faturamento anual presumido ${currencySymbol} 3M - ${currencySymbol} 8M", Rating: "Alto" | "Médio" | "Baixo".
    - Authority: Estrutura do organograma. Identifique o CEO, CMO, CTO, Sócio-Fundador ou Diretor de Operações (nome completo e cargo específico).
    - Need: Mapeie exatamente 3 falhas operacionais, estéticas ou tecnológicas visíveis no site/operação dele (ex: "1. Ausência de Pixel do Meta para retargeting; 2. Tempo de resposta no WhatsApp > 2 horas sem triagem; 3. Formulário de contato com erro ou sem validação instantânea").
    - Timeline & Fator de Urgência: Indicadores de urgência identificados (ex: vagas abertas no LinkedIn para comercial/marketing, expansão para nova unidade, tecnologias e design defasados, queda no engajamento recente). Urgência: "Crítico (Imediato)", "Médio (30 dias)", "Baixo".
@@ -149,9 +154,9 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO (sem comentários, sem markdown, sem 
     "budgetMaturity": "Alta",
     "bantPlus": {
       "budget": {
-        "estimatedBudget": "R$ 15.000 a R$ 40.000 / mês em aquisição",
+        "estimatedBudget": "${currencySymbol} 15.000 a ${currencySymbol} 40.000 / mês em aquisição",
         "companySize": "25 a 50 funcionários",
-        "estimatedRevenue": "R$ 5M - R$ 12M / ano",
+        "estimatedRevenue": "${currencySymbol} 5M - ${currencySymbol} 12M / ano",
         "rating": "Alto"
       },
       "authority": {
@@ -333,9 +338,9 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO (sem comentários, sem markdown, sem 
 
       const bantPlus = {
         budget: {
-          estimatedBudget: raw.bantPlus?.budget?.estimatedBudget || (icpScore >= 85 ? "R$ 20.000 a R$ 50.000 / mês" : "R$ 5.000 a R$ 15.000 / mês"),
+          estimatedBudget: raw.bantPlus?.budget?.estimatedBudget || (icpScore >= 85 ? `${currencySymbol} 20.000 a ${currencySymbol} 50.000 / mês` : `${currencySymbol} 5.000 a ${currencySymbol} 15.000 / mês`),
           companySize: raw.bantPlus?.budget?.companySize || (icpScore >= 85 ? "20 a 50 funcionários" : "5 a 15 funcionários"),
-          estimatedRevenue: raw.bantPlus?.budget?.estimatedRevenue || (icpScore >= 85 ? "R$ 4M a R$ 10M / ano" : "R$ 1M a R$ 3M / ano"),
+          estimatedRevenue: raw.bantPlus?.budget?.estimatedRevenue || (icpScore >= 85 ? `${currencySymbol} 4M a ${currencySymbol} 10M / ano` : `${currencySymbol} 1M a ${currencySymbol} 3M / ano`),
           rating: raw.bantPlus?.budget?.rating || (icpScore >= 85 ? "Alto" : (icpScore >= 60 ? "Médio" : "Baixo"))
         },
         authority: {
