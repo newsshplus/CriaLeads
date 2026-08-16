@@ -351,6 +351,7 @@ export function generateAutonomousFallbackLeads(
         }
       },
       status: 'new',
+      source: 'synthetic',
       businessStatus: 'OPERATIONAL'
     };
 

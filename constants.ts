@@ -88,8 +88,27 @@ export const DEFAULT_AI_ENGINE_CONFIG: AiEngineConfig = {
   ],
   customGeminiApiKey: "",
   geminiKeyStatus: { status: "UNTESTED" },
-  useGroundingTools: false // Previne 403 PERMISSION_DENIED em chaves gratuitas do Google AI Studio
+  useGroundingTools: false, // Previne 403 PERMISSION_DENIED em chaves gratuitas do Google AI Studio
+  geminiModel: "gemini-3.6-flash"
 };
+
+export const GEMINI_MODELS = [
+  { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash (Recomendado - Rápido & Atual)", note: "GA • melhor custo/desempenho" },
+  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", note: "GA • alta inteligência" },
+  { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", note: "GA • mais econômico" },
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Legado)", note: "Descontinuado em 16/10/2026" }
+];
+
+export const COMPANY_EMAIL_TEMPLATE = `Olá {{name}},
+
+Estava analisando a operação digital de empresas em {{city}} e identifiquei oportunidades claras de melhoria na captação de clientes.
+
+Na nossa agência, estruturamos automações de IA, sites de alta conversão e SDRs de WhatsApp que destravam o funil comercial sem aumentar o headcount.
+
+Consegue 10 minutos nesta semana para eu te mostrar um diagnóstico personalizado para o seu negócio?
+
+Abraços,
+Equipe Comercial`;
 
 export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
   websiteUrl: "https://meusite.com.br",

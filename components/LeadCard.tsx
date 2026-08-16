@@ -144,7 +144,17 @@ const LeadCard: React.FC<LeadCardProps> = ({
           >
             {lead.name}
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">{lead.category} • {lead.city}</p>
+          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5">
+            <span>{lead.category} • {lead.city}</span>
+            {lead.source === 'synthetic' && (
+              <span 
+                title="Lead gerado pelo motor de fallback (empresa plausível, dados não verificados)"
+                className="inline-flex items-center text-[9px] text-slate-600 bg-slate-100 px-1 py-0.2 rounded font-semibold border border-slate-300"
+              >
+                Simulado
+              </span>
+            )}
+          </p>
         </div>
 
         {/* Tech Stack Chips */}

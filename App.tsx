@@ -34,6 +34,48 @@ import JsonViewerModal from './components/JsonViewerModal';
 import ScrapingPipelineBanner from './components/ScrapingPipelineBanner';
 import AiLiveCopilotModal from './components/AiLiveCopilotModal';
 
+// --- Utilitários de deduplicação/merge de leads ---
+const normalizeName = (name: string) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const normalizeWebsite = (url: string) => url.replace(/^https?:\/\//, '').replace(/^www\./, '').toLowerCase().replace(/\/+$/, '').trim();
+
+// Mescla novos leads com a lista existente, preservando status de contato e evitando duplicados
+function mergeLeadLists(newLeads: Lead[], existing: Lead[]): Lead[] {
+  const keyOf = (lead: Lead) => lead.website
+    ? `w:${normalizeWebsite(lead.website)}`
+    : `n:${normalizeName(lead.name)}`;
+
+  const seen = new Set<string>();
+  const merged: Lead[] = [];
+
+  for (const lead of newLeads) {
+    const key = keyOf(lead);
+    const dup = !seen.has(key) && existing.find(e => keyOf(e) === key);
+    if (dup) {
+      // Mantém ID/status/contato do lead já existente, mas adota o enriquecimento mais recente
+      merged.push({
+        ...lead,
+        id: dup.id,
+        status: lead.status === 'new' ? dup.status : lead.status,
+        lastContactedAt: lead.lastContactedAt || dup.lastContactedAt,
+        notes: dup.notes || lead.notes
+      });
+    } else {
+      merged.push(lead);
+    }
+    seen.add(key);
+  }
+
+  for (const lead of existing) {
+    const key = keyOf(lead);
+    if (!seen.has(key)) {
+      merged.push(lead);
+      seen.add(key);
+    }
+  }
+
+  return merged;
+}
+
 export function App() {
   // Business Profile & Matching State
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile>(() => {
@@ -63,6 +105,7 @@ export function App() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const loadingStepTimerRef = useRef<number[]>([]);
   const [loadingStep, setLoadingStep] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [engineStatus, setEngineStatus] = useState<ScrapingEngineStatus>({
@@ -118,26 +161,23 @@ export function App() {
     setIsLoading(true);
     setError(null);
     setSelectedLeadIds(new Set());
-    
+
     const isAuto = !targetKeyword || targetKeyword.trim() === "" || targetKeyword.toLowerCase() === "auto";
     setLoadingStep(isAuto 
       ? '1/4 Mapeando Nichos de Alto Ticket & Alta Conversão para os seus serviços...'
       : `1/4 Iniciando Prospecção para "${targetKeyword}" com IA e Fallback...`
     );
 
+    // Clear any previous pending step timers before scheduling new ones
+    loadingStepTimerRef.current.forEach(t => window.clearTimeout(t));
+    const isLoadingRef = { value: true };
+    loadingStepTimerRef.current = [
+      window.setTimeout(() => { if (isLoadingRef.value) setLoadingStep('2/4 Mapeando Decisores, WhatsApp Direto & Falhas de Tecnologia...'); }, 2500),
+      window.setTimeout(() => { if (isLoadingRef.value) setLoadingStep('3/4 Calculando Intent Score e Deep Matching com suas soluções...'); }, 5000),
+      window.setTimeout(() => { if (isLoadingRef.value) setLoadingStep('4/4 Gerando Roteiros Omnichannel e Payloads Pitro CRM / Z-API...'); }, 7500)
+    ];
+
     try {
-      setTimeout(() => {
-        if (isLoading) setLoadingStep('2/4 Mapeando Decisores, WhatsApp Direto & Falhas de Tecnologia...');
-      }, 2500);
-
-      setTimeout(() => {
-        if (isLoading) setLoadingStep('3/4 Calculando Intent Score e Deep Matching com suas soluções...');
-      }, 5000);
-
-      setTimeout(() => {
-        if (isLoading) setLoadingStep('4/4 Gerando Roteiros Omnichannel e Payloads Pitro CRM / Z-API...');
-      }, 7500);
-
       const result = await searchAndScoreLeads(
         targetKeyword,
         searchParams.country,
@@ -155,13 +195,16 @@ export function App() {
         return check.contacted ? { ...lead, status: 'contacted' as const, lastContactedAt: check.date } : lead;
       });
 
-      setLeads(processed);
+      setLeads(prev => mergeLeadLists(processed, prev));
       setEngineStatus(result.engineStatus);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       console.error(err);
       setError(err.message || 'Erro durante o processo de prospecção autônoma.');
     } finally {
+      isLoadingRef.value = false;
+      loadingStepTimerRef.current.forEach(t => window.clearTimeout(t));
+      loadingStepTimerRef.current = [];
       setIsLoading(false);
       setLoadingStep('');
     }
@@ -170,6 +213,8 @@ export function App() {
   const handleCancelSearch = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+      loadingStepTimerRef.current.forEach(t => window.clearTimeout(t));
+      loadingStepTimerRef.current = [];
       setIsLoading(false);
       setLoadingStep('');
     }
@@ -341,6 +386,10 @@ export function App() {
         totalLeads: 0,
         avgScore: 0,
         avgIcpScore: 0,
+        avgIntentScore: 0,
+        highPriorityCount: 0,
+        mediumPriorityCount: 0,
+        disqualifiedCount: 0,
         scoreACount: 0,
         scoreBCount: 0,
         scoreCCount: 0,
@@ -359,6 +408,10 @@ export function App() {
     const withPhone = leads.filter(l => !!l.phone || !!l.decisionMaker?.directPhone).length;
     const withEmail = leads.filter(l => !!l.email || !!l.decisionMaker?.directEmail).length;
     const avgIcp = Math.round(leads.reduce((acc, l) => acc + l.icpScore, 0) / total);
+    const avgIntent = Math.round(leads.reduce((acc, l) => acc + (l.intentScore || 0), 0) / total);
+    const highPriority = leads.filter(l => l.intentPriority === 'HIGH').length;
+    const mediumPriority = leads.filter(l => l.intentPriority === 'MEDIUM').length;
+    const disqualified = leads.filter(l => l.intentPriority === 'DISQUALIFIED' || l.icpTier === 'SCORE_C').length;
 
     // Approximate pipeline value calculation (Score A * 14.000 + Score B * 7.500)
     const pipelineVal = (scoreA * 14000) + (scoreB * 7500);
@@ -368,6 +421,10 @@ export function App() {
       totalLeads: total,
       avgScore: Math.round(leads.reduce((acc, l) => acc + l.score, 0) / total),
       avgIcpScore: avgIcp,
+      avgIntentScore: avgIntent,
+      highPriorityCount: highPriority,
+      mediumPriorityCount: mediumPriority,
+      disqualifiedCount: disqualified,
       scoreACount: scoreA,
       scoreBCount: scoreB,
       scoreCCount: scoreC,
@@ -740,6 +797,30 @@ export function App() {
               <div className="mt-1 flex items-baseline gap-1.5">
                 <span className="text-2xl font-extrabold text-indigo-600">{stats.avgIcpScore}%</span>
                 <span className="text-xs text-gray-400 font-medium">qualidade</span>
+              </div>
+            </div>
+
+            {/* Intent Médio / Prioridade Alta */}
+            <div className="bg-white p-3.5 rounded-xl border border-orange-200 shadow-sm flex flex-col justify-between bg-orange-50/20">
+              <span className="text-[11px] font-bold text-orange-800 uppercase tracking-wider flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5 fill-orange-400 text-orange-600" />
+                Prioridade Alta
+              </span>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold text-orange-700">{stats.highPriorityCount}</span>
+                <span className="text-xs text-orange-600 font-semibold">intent {stats.avgIntentScore}%</span>
+              </div>
+            </div>
+
+            {/* Desqualificados */}
+            <div className="bg-white p-3.5 rounded-xl border border-red-200 shadow-sm flex flex-col justify-between bg-red-50/20">
+              <span className="text-[11px] font-bold text-red-800 uppercase tracking-wider flex items-center gap-1">
+                <XCircle className="w-3.5 h-3.5 text-red-500" />
+                Descartados
+              </span>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold text-red-700">{stats.disqualifiedCount}</span>
+                <span className="text-xs text-red-600 font-medium">sem ação</span>
               </div>
             </div>
 

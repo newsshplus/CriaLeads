@@ -9,7 +9,7 @@ import {
 import { analyzeBusinessProfile } from '../services/geminiService';
 import { saveBusinessProfile } from '../services/storageService';
 import { getAiConfig, saveAiConfig, testGroqKey } from '../services/aiProviderService';
-import { DEFAULT_HIGH_TICKET_NICHES } from '../constants';
+import { DEFAULT_HIGH_TICKET_NICHES, GEMINI_MODELS } from '../constants';
 
 interface BusinessProfileModalProps {
   isOpen: boolean;
@@ -522,7 +522,7 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
                     {aiConfig.activeProvider === 'auto' && <Check className="w-4 h-4 text-indigo-600" />}
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Prioriza Groq 3-Key Pool e alterna para Gemini 2.5 Flash sem interrupções.
+                    Prioriza Groq 3-Key Pool e alterna para Gemini (auto-fallback) sem interrupções.
                   </p>
                 </button>
 
@@ -562,11 +562,11 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-slate-900">Gemini 2.5 Flash</span>
+                    <span className="text-xs font-bold text-slate-900">Gemini (Google AI)</span>
                     {aiConfig.activeProvider === 'gemini' && <Check className="w-4 h-4 text-indigo-600" />}
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Usa a infraestrutura nativa do Google AI com Maps e Search Grounding.
+                    Usa a infraestrutura nativa do Google AI com o modelo selecionado abaixo.
                   </p>
                 </button>
               </div>
@@ -681,6 +681,30 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
                   <option value="mixtral-8x7b-32768">Mixtral 8x7B 32k (Ultra Rápido)</option>
                   <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Ultra Econômico)</option>
                 </select>
+              </div>
+
+              {/* Gemini Model Choice */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-indigo-600" />
+                  Modelo Gemini Ativo
+                </label>
+                <select
+                  value={aiConfig.geminiModel || 'gemini-3.6-flash'}
+                  onChange={e => {
+                    const updated = { ...aiConfig, geminiModel: e.target.value };
+                    setAiConfig(updated);
+                    saveAiConfig(updated);
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  {GEMINI_MODELS.map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400">
+                  {GEMINI_MODELS.find(m => m.id === (aiConfig.geminiModel || 'gemini-3.6-flash'))?.note}
+                </p>
               </div>
             </div>
           )}

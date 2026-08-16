@@ -356,6 +356,7 @@ export interface Lead {
   businessStatus?: 'OPERATIONAL' | 'CLOSED_TEMPORARILY' | 'CLOSED_PERMANENTLY' | 'UNKNOWN';
   lastContactedAt?: string;
   notes?: string;
+  source?: 'ai' | 'synthetic';
 }
 
 export interface HighTicketNicheRecommendation {
@@ -398,6 +399,7 @@ export interface AiEngineConfig {
   customGeminiApiKey?: string; // Chave gratuita do Google AI Studio (aistudio.google.com)
   geminiKeyStatus?: GeminiKeyStatus;
   useGroundingTools?: boolean; // Se falso, não anexa ferramentas pagas (previne 403 Permission Denied)
+  geminiModel?: string; // Modelo ativo do Gemini (ex: gemini-3.6-flash)
 }
 
 export interface BusinessProfile {
@@ -418,10 +420,10 @@ export interface BusinessProfile {
 }
 
 export interface ScrapingEngineStatus {
-  primary: { name: string; status: 'ACTIVE' | 'IDLE' | 'LIMIT_REACHED' };
+  primary: { name: string; status: 'ACTIVE' | 'IDLE' | 'LIMIT_REACHED' | 'STANDBY' };
   secondary: { name: string; status: 'STANDBY' | 'ACTIVE' | 'FALLBACK_READY' };
   tertiary: { name: string; status: 'STANDBY' | 'ACTIVE' | 'READY' };
-  activeEngine: 'PRIMARY (Prospector/Firecrawl)' | 'SECONDARY (DuckDuckGo/Playwright)' | 'TERTIARY (Google/Bing Free API)';
+  activeEngine: string;
   lastLatencyMs: number;
   extractedCount: number;
   aiEngineActive?: string;

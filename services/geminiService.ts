@@ -1,4 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
 import { Lead, BusinessProfile, IcpTier, ScrapingEngineStatus } from "../types";
 import { buildDeliverabilityGuardian, buildEvolutionAndResendPayloads } from "./deliverabilityService";
 import { buildObjectionCrusherMatrix } from "./objectionCrusherService";
@@ -6,10 +5,15 @@ import { buildCadenceMaster } from "./cadenceService";
 import { generateAutonomousFallbackLeads } from "./syntheticProspector";
 import { executeAiCompletion, scanWebsiteAndExtractProfile } from "./aiProviderService";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY });
-
 const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+// Converte o placeholder de veracidade "NÃO VERIFICADO" em campo vazio, evitando contatos falsos
+const cleanField = (value: any): string => {
+  if (typeof value !== 'string') return value || '';
+  const trimmed = value.trim();
+  if (/n[ãa]o verificad[oa]/i.test(trimmed)) return '';
+  return trimmed;
+};
 
 /**
  * 1. MÓDULO DE DEEP MATCHING DO MEU NEGÓCIO & REVERSE ICP EXTRACTOR
@@ -104,7 +108,17 @@ PARA CADA EMPRESA E LEAD FORNECIDO, EXECUTE A ANÁLISE PROFUNDA DE ENRIQUECIMENT
 
 6. PAYLOADS DE AUTOMAÇÃO (Z-API WhatsApp, Resend Email, HubSpot CRM com Intent Score e Techs).
 
-RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO:
+=======================================================
+REGRAS DE VERACIDADE (OBRIGATÓRIAS — NÃO INVENTAR DADOS):
+=======================================================
+1. NUNCA invente telefone, e-mail ou nome de decisor. Se você não tem certeza absoluta de um dado de contato, escreva EXATAMENTE "NÃO VERIFICADO" no campo (ex: "phone": "NÃO VERIFICADO", "email": "NÃO VERIFICADO", "directPhone": "NÃO VERIFICADO", "directEmail": "NÃO VERIFICADO"). Um contato falso danifica a entregabilidade do e-mail e a reputação do usuário.
+2. Dados de contato só devem ser preenchidos quando derivados de informação pública real que você conhece (site, Google Maps, redes sociais oficiais). Campos incertos NUNCA recebem valores fabricados com cara de real (ex: "contato@empresa.com", "5511987654321").
+3. Se não conseguir determinar o site da empresa, use "". Se não conseguir determinar a categoria, use a categoria do termo de busca.
+4. "rating", "reviews", "address", "description" e "bantPlus" (budget/funcionários/faturamento) devem ser estimativas plausíveis EXPLICITAMENTE marcadas como suposição no texto quando não verificáveis — prefira valores conservadores a valores inventados.
+5. Se o site não pôde ser analisado, marque "techStack.detectedTools" como ["Sem site analisado"], "digitalGaps" só com gaps plausíveis genéricos e o "matchReason" deve deixar claro que o diagnóstico foi presuntivo.
+6. A cópia (WhatsApp/e-mail/telefone) deve referenciar apenas as falhas que você efetivamente identificou. Nunca afirme fatos específicos da empresa que você não sabe (número de funcionários exato, faturamento exato, etc.) como verdade absoluta — use "sinal de", "indícios de", "potencial de".
+
+RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO (sem comentários, sem markdown, sem texto antes ou depois):
 [
   {
     "name": "Nome da Empresa",
@@ -114,8 +128,8 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO:
     "address": "Endereço completo",
     "city": "${location || 'Região'}",
     "website": "https://...",
-    "phone": "+55 11 ...",
-    "email": "contato@empresa.com",
+    "phone": "NÃO VERIFICADO",
+    "email": "NÃO VERIFICADO",
     "googleMapsLink": "https://maps.google.com/...",
     "description": "Resumo da empresa",
     "icpScore": 94,
@@ -172,10 +186,10 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO:
       ]
     },
     "decisionMaker": {
-      "name": "Rodrigo Silva",
-      "role": "Diretor Comercial",
-      "directEmail": "rodrigo@empresa.com",
-      "directPhone": "+55 11 98765-4321"
+      "name": "NÃO VERIFICADO",
+      "role": "NÃO VERIFICADO",
+      "directEmail": "NÃO VERIFICADO",
+      "directPhone": "NÃO VERIFICADO"
     },
     "outreach": {
       "whatsapp": {
@@ -295,10 +309,10 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO:
       }
 
       const leadName = raw.name || `Empresa ${index + 1}`;
-      const decName = raw.bantPlus?.authority?.keyDecisionMaker || raw.decisionMaker?.name || "Responsável Comercial";
-      const decRole = raw.bantPlus?.authority?.role || raw.decisionMaker?.role || "Diretor(a)";
-      const decPhone = raw.decisionMaker?.directPhone || raw.phone || "";
-      const decEmail = raw.decisionMaker?.directEmail || raw.email || "";
+      const decName = cleanField(raw.bantPlus?.authority?.keyDecisionMaker || raw.decisionMaker?.name) || "Responsável Comercial";
+      const decRole = cleanField(raw.bantPlus?.authority?.role || raw.decisionMaker?.role) || "Diretor(a)";
+      const decPhone = cleanField(raw.decisionMaker?.directPhone || raw.phone);
+      const decEmail = cleanField(raw.decisionMaker?.directEmail || raw.email);
 
       const defaultPain = raw.identifiedPain || "Processos comerciais com pontos de atrito e tempo de resposta elevado";
       const urgencyFactor = raw.urgencyFactor || raw.bantPlus?.timeline?.urgencyFactor || "Demanda ativa com gap de atendimento digital";
@@ -395,7 +409,7 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO:
 
       const webhookPayloads = raw.webhookPayloads || {
         zapiWhatsApp: {
-          phone: decPhone ? decPhone.replace(/\D/g, '') : "5511999999999",
+          phone: decPhone.replace(/\D/g, '') || "",
           message: outreach.whatsapp.option1Curiosity,
           leadName: decName,
           company: leadName,
@@ -403,7 +417,7 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO:
           intentScore
         },
         resendEmail: {
-          to: decEmail || "contato@empresa.com",
+          to: decEmail || "",
           subject: outreach.email.subject,
           text: outreach.email.bodyAida,
           html: `<p>${outreach.email.bodyAida.replace(/\n/g, '<br/>')}</p>`,
@@ -427,6 +441,8 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO:
       const tempLead: Lead = {
         id: `lead-enrich-${Date.now()}-${index + 1}`,
         name: leadName,
+        status: 'new',
+        source: 'ai',
         category: raw.category || (isAutoHighTicket ? 'Nicho de Alto Ticket' : (keyword || 'B2B')),
         rating: typeof raw.rating === 'number' ? raw.rating : 4.8,
         reviews: typeof raw.reviews === 'number' ? raw.reviews : 32,
@@ -434,9 +450,9 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO:
         city: raw.city || location || 'São Paulo',
         district: district !== 'Todas' ? district : '',
         country: country,
-        website: raw.website || '',
-        phone: raw.phone || '',
-        email: raw.email || '',
+        website: cleanField(raw.website) || '',
+        phone: cleanField(raw.phone),
+        email: cleanField(raw.email),
         googleMapsLink: raw.googleMapsLink || `https://maps.google.com/?q=${encodeURIComponent(leadName)}`,
         description: raw.description || `Empresa atuando no segmento de ${raw.category || keyword || 'Alto Ticket'} em ${locationContext}.`,
         score: Math.round(icpScore * 0.5 + intentScore * 0.4 + 10),
@@ -462,7 +478,7 @@ RETORNO ESTRITAMENTE EM JSON ARRAY VÁLIDO:
       const guardian = buildDeliverabilityGuardian(tempLead);
       const objectionCrusher = buildObjectionCrusherMatrix(tempLead, businessProfile);
       const cadence = buildCadenceMaster(tempLead, businessProfile);
-      const enhancedPayloads = buildEvolutionAndResendPayloads(tempLead, businessProfile);
+      const enhancedPayloads = buildEvolutionAndResendPayloads(tempLead, icpTier === 'SCORE_A' ? 'A' : (icpTier === 'SCORE_B' ? 'B' : 'C'));
 
       tempLead.guardian = guardian;
       tempLead.objectionCrusher = objectionCrusher;

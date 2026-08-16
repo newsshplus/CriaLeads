@@ -186,7 +186,7 @@ export function buildPitroCrmPayload(
     cadence21d: lead.cadence ? {
       currentStep: 1,
       totalSteps: lead.cadence.steps.length,
-      status: lead.cadence.status,
+      status: lead.cadence.isAutomationActive ? 'ACTIVE' : 'INACTIVE',
       stopTriggerRule: lead.cadence.stopTriggerRule,
       crmStopPayload: lead.cadence.crmStopPayload,
       nextScheduledTouch: lead.cadence.steps[0] ? {
@@ -199,7 +199,7 @@ export function buildPitroCrmPayload(
     // Elite Sales Objection Battlecards for Human SDRs / Closers
     aiSalesBattlecard: {
       coldCall: lead.outreach.coldCall,
-      topObjections: lead.objectionCrusher?.items || [],
+      topObjections: lead.objectionCrusher ? Object.values(lead.objectionCrusher.objections) : [],
       urgencyFactor: lead.urgencyFactor
     }
   };

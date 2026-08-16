@@ -149,6 +149,14 @@ const PipelineTable: React.FC<PipelineTableProps> = ({
                         >
                           {lead.name}
                         </span>
+                        {lead.source === 'synthetic' && (
+                          <span 
+                            title="Lead gerado pelo motor de fallback (empresa plausível, dados não verificados)" 
+                            className="inline-flex items-center text-[9px] text-slate-600 bg-slate-100 px-1 py-0.2 rounded font-semibold border border-slate-300"
+                          >
+                            Simulado
+                          </span>
+                        )}
                         {lead.status === 'contacted' && (
                           <span className="inline-flex items-center text-[9px] text-blue-700 bg-blue-50 px-1 py-0.2 rounded font-semibold border border-blue-200">
                             <CheckCircle className="w-2.5 h-2.5 mr-0.5" />

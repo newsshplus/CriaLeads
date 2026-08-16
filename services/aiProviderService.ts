@@ -19,7 +19,8 @@ export function getAiConfig(): AiEngineConfig {
       keyStatuses: Array.isArray(parsed.keyStatuses) ? parsed.keyStatuses : DEFAULT_AI_ENGINE_CONFIG.keyStatuses,
       customGeminiApiKey: parsed.customGeminiApiKey || "",
       geminiKeyStatus: parsed.geminiKeyStatus || { status: 'UNTESTED' },
-      useGroundingTools: parsed.useGroundingTools || false
+      useGroundingTools: parsed.useGroundingTools || false,
+      geminiModel: parsed.geminiModel || DEFAULT_AI_ENGINE_CONFIG.geminiModel
     };
   } catch (e) {
     console.error("Failed to load AI config from storage", e);
@@ -67,17 +68,18 @@ export function getGeminiClient(customKey?: string): GoogleGenAI {
 /**
  * Test a Gemini API Key (100% Free Key from Google AI Studio)
  */
-export async function testGeminiApiKey(key: string): Promise<{ success: boolean; latencyMs: number; error?: string }> {
+export async function testGeminiApiKey(key: string, model?: string): Promise<{ success: boolean; latencyMs: number; error?: string }> {
   if (!key || !key.trim()) {
     return { success: false, latencyMs: 0, error: "Chave do Gemini vazia. Obtenha uma chave gratuita em aistudio.google.com" };
   }
 
   const start = Date.now();
+  const activeModel = model || getAiConfig().geminiModel || 'gemini-3.6-flash';
   try {
     const testAi = new GoogleGenAI({ apiKey: key.trim() });
     const res = await Promise.race([
       testAi.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: activeModel,
         contents: "Responda apenas: OK",
         config: {
           temperature: 0.1
@@ -274,6 +276,7 @@ export async function executeAiCompletion(options: {
 
     const geminiAi = getGeminiClient();
     const fullPrompt = options.systemPrompt ? `${options.systemPrompt}\n\n${options.prompt}` : options.prompt;
+    const activeModel = config.geminiModel || 'gemini-3.6-flash';
     
     // CRITICAL ANTI-403 FIX: Only pass tools if explicitly enabled and requested
     // (Free Google AI Studio keys throw 403 Permission Denied if googleMaps/googleSearch tools are attached)
@@ -283,7 +286,7 @@ export async function executeAiCompletion(options: {
 
     const geminiRes: any = await Promise.race([
       geminiAi.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: activeModel,
         contents: fullPrompt,
         config: {
           tools: activeTools,
@@ -295,7 +298,7 @@ export async function executeAiCompletion(options: {
 
     return {
       text: geminiRes.text || "",
-      engineUsed: "Google Gemini 2.5 Flash (Free Tier)"
+      engineUsed: `Google Gemini (${activeModel})`
     };
   } catch (geminiError: any) {
     if (options.signal?.aborted) throw geminiError;
