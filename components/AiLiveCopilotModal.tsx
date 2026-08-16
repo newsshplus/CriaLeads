@@ -7,7 +7,7 @@ import {
   ScreenShare, Video
 } from 'lucide-react';
 import { analyzeLiveConversationTurn, QUICK_AUDIO_SCENARIOS } from '../services/liveCopilotService';
-import { sendLiveCallAnalysisToCriahubCrm, getCriahubCrmConfig } from '../services/criahubCrmService';
+import { sendLiveCallAnalysisToCriahubCrm, getCriahubCrmConfig } from '../services/pitroCrmService';
 import { getSavedCountry, getCurrencyConfig } from '../services/countryService';
 
 interface AiLiveCopilotModalProps {
