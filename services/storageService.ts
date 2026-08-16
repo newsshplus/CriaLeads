@@ -95,7 +95,11 @@ export const saveContactedLead = (lead: Lead) => {
   };
 
   history.push(record);
-  localStorage.setItem(CONTACTED_STORAGE_KEY, JSON.stringify(history));
+  try {
+    localStorage.setItem(CONTACTED_STORAGE_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.error("Failed to save contacted history", e);
+  }
 };
 
 export const checkLeadStatus = (lead: Lead): { contacted: boolean, date?: string } => {
@@ -137,6 +141,10 @@ export const logWebhookDispatch = (log: Omit<WebhookLog, 'id' | 'timestamp'>) =>
   };
   logs.unshift(newLog);
   // Keep last 50 logs
-  localStorage.setItem(WEBHOOK_LOGS_KEY, JSON.stringify(logs.slice(0, 50)));
+  try {
+    localStorage.setItem(WEBHOOK_LOGS_KEY, JSON.stringify(logs.slice(0, 50)));
+  } catch (e) {
+    console.error("Failed to save webhook logs", e);
+  }
   return newLog;
 };

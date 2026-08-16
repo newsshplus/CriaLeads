@@ -61,7 +61,8 @@ export function saveAiConfig(config: AiEngineConfig): void {
  */
 export function getGeminiClient(customKey?: string): GoogleGenAI {
   const config = getAiConfig();
-  const keyToUse = customKey?.trim() || config.customGeminiApiKey?.trim() || process.env.API_KEY || process.env.GEMINI_API_KEY || "";
+  const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.API_KEY || process.env.GEMINI_API_KEY) : undefined;
+  const keyToUse = customKey?.trim() || config.customGeminiApiKey?.trim() || envKey || "";
   return new GoogleGenAI({ apiKey: keyToUse });
 }
 

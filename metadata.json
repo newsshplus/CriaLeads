@@ -1,9 +1,6 @@
 {
   "name": "Architect-Prospector AI",
-  "description": "Sistema autônomo de inteligência de prospecção B2B com Deep Matching, ICP Score A/B/C, Enriquecimento BANT+, Tech Stack Scanner, Abordagem Omnichannel, Protocolo Deliverability & Anti-Ban Guardian, Copiloto IA em Tempo Real para Chamadas/WhatsApp (Áudio e Texto), e Integração Nativa de Webhooks para Pitro CRM, Evolution API e Resend Email.",
-  "requestFramePermissions": [
-    "microphone"
-  ],
+  "description": "Sistema autonômo de inteligência de prospecção B2B com Deep Matching, ICP Score A/B/C, Enriquecimento BANT+, Tech Stack Scanner, Abordagem Omnichannel, Protocolo Deliverability & Anti-Ban Guardian, Copiloto IA em Tempo Real para Chamadas/WhatsApp (Áudio e Texto), e Integração Nativa de Webhooks para Pitro CRM, Evolution API e Resend Email.",
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]

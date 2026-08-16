@@ -24,6 +24,30 @@
   }
 }
 </script>
+<script>
+  // Diagnostic overlay: surfaces ANY runtime/module error instead of a white screen
+  (function () {
+    function show(msg) {
+      try {
+        var el = document.getElementById('__err-overlay');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = '__err-overlay';
+          el.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:999999;background:#7f1d1d;color:#fff;font:12px/1.5 monospace;padding:12px 16px;white-space:pre-wrap;max-height:45vh;overflow:auto;';
+          document.body && document.body.appendChild(el);
+        }
+        el.textContent = '[Erro do app] ' + msg;
+      } catch (e) {}
+    }
+    window.addEventListener('error', function (e) {
+      show((e.message || (e.error && e.error.stack) || 'Erro desconhecido').toString());
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e.reason;
+      show('Promise rejeitada: ' + (r && (r.message || r.stack || r)) + '');
+    });
+  })();
+</script>
 </head>
   <body>
     <div id="root"></div>
