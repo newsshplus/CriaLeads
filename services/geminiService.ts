@@ -520,7 +520,7 @@ export async function searchAndScoreLeads(
     ? `${location}, ${district && district !== 'Todas' ? district + ', ' : ''}${country}`
     : (district && district !== 'Todas' ? `${district}, ${country}` : country);
 
-  const isAutoHighTicket = !keyword || keyword.trim() === "" || keyword.toLowerCase() === "auto" || keyword.toLowerCase() === "alto ticket" || keyword.toLowerCase() === "todos";
+  const isAuto = !keyword || keyword.trim() === "" || keyword.toLowerCase() === "auto" || keyword.toLowerCase() === "todos";
 
   let usedEngineName = "Groq AI Enrichment";
 

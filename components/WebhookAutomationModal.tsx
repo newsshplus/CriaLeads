@@ -11,7 +11,7 @@ import {
   saveCriahubCrmConfig, 
   sendLeadToCriahubCrm, 
   buildCriahubCrmPayload 
-} from '../services/pitroCrmService';
+} from '../services/criahubCrmService';
 
 interface WebhookAutomationModalProps {
   isOpen: boolean;

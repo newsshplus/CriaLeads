@@ -11,7 +11,7 @@ import { logWebhookDispatch } from '../services/storageService';
 import { buildDeliverabilityGuardian, buildEvolutionAndResendPayloads } from '../services/deliverabilityService';
 import { buildObjectionCrusherMatrix, generateGoogleCalendarUrl } from '../services/objectionCrusherService';
 import { buildCadenceMaster } from '../services/cadenceService';
-import { sendLeadToCriahubCrm, buildCriahubCrmPayload, getCriahubCrmConfig } from '../services/pitroCrmService';
+import { sendLeadToCriahubCrm, buildCriahubCrmPayload, getCriahubCrmConfig } from '../services/criahubCrmService';
 import { getSavedCountry, formatCurrencySymbol } from '../services/countryService';
 
 interface OmnichannelModalProps {

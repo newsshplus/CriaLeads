@@ -317,11 +317,9 @@ export async function searchRealBusinesses(
  * Em strictMode, remove empresas sem website.
  */
 export function prioritizeRealBusinesses(businesses: RealBusiness[], strictMode: boolean): RealBusiness[] {
-  const filtered = strictMode
-    ? businesses.filter(b => b.website && b.website.startsWith('http'))
-    : businesses;
-
-  return [...filtered]
+  // Não filtra mais - mantém TODAS as empresas reais (incluindo sem website/telefone)
+  // Apenas ordena: empresas com website+telefone+avaliação primeiro
+  return [...businesses]
     .sort((a, b) => {
       const aScore = (a.website ? 4 : 0) + (a.phone ? 3 : 0) + (a.rating || 0) * 0.3 + (a.verified ? 1 : 0);
       const bScore = (b.website ? 4 : 0) + (b.phone ? 3 : 0) + (b.rating || 0) * 0.3 + (b.verified ? 1 : 0);
