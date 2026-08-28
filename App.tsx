@@ -45,6 +45,7 @@ import {
   getEffectivePermissions, 
   isMenuItemVisible, 
   getVisibleMenuItems,
+  getAvailableRoles,
   getCurrentUserRole,
   setCurrentUserRole,
   DEFAULT_ROLES 
@@ -201,6 +202,7 @@ export function App() {
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [currentUserRole, setCurrentUserRoleState] = useState<string>(() => getCurrentUserRole());
   const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>(() => getEffectivePermissions());
+  const [activeMenu, setActiveMenu] = useState<MenuItemId>('dashboard');
 
   // AI Live Copilot State
   const [selectedLeadForLiveCopilot, setSelectedLeadForLiveCopilot] = useState<Lead | null>(null);
@@ -517,6 +519,90 @@ export function App() {
     ? businessProfile.recommendedHighTicketNiches 
     : getHighTicketNichesForCountry(country);
 
+  // --- Navegação por menu (painel do cliente) ---
+  const availableRoles = getAvailableRoles();
+  const visibleMenuItems = getVisibleMenuItems();
+
+  const activePage: 'dashboard' | 'prospector' =
+    activeMenu === 'dashboard' || activeMenu.startsWith('analytics') ? 'dashboard' : 'prospector';
+
+  const handleRoleChange = (roleId: string) => {
+    setCurrentUserRole(roleId);
+    setCurrentUserRoleState(roleId);
+    setUserPermissions(getEffectivePermissions());
+    setActiveMenu('dashboard');
+  };
+
+  const handleMenuClick = (id: MenuItemId) => {
+    setActiveMenu(id);
+    const page = id.split('.')[0];
+    switch (page) {
+      case 'crm':
+        setIsWebhookModalOpen(true);
+        break;
+      case 'settings':
+        setIsProfileModalOpen(true);
+        break;
+      case 'admin':
+        setIsAdminPanelOpen(true);
+        break;
+      case 'outreach':
+        if (leads.length > 0) {
+          setSelectedLeadForOmnichannel(leads[0]);
+          setOmnichannelInitialTab('cadence');
+          setIsOmnichannelOpen(true);
+        }
+        break;
+      case 'copilot':
+        if (leads.length > 0) {
+          setSelectedLeadForLiveCopilot(leads[0]);
+          setIsLiveCopilotOpen(true);
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  const Sidebar = () => (
+    <aside className="w-60 shrink-0 bg-white border-r border-slate-200 p-3 hidden md:block overflow-y-auto">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-2">Menu</div>
+      <nav className="space-y-0.5">
+        {visibleMenuItems.map(item => (
+          <div key={item.id}>
+            <button
+              type="button"
+              onClick={() => handleMenuClick(item.id)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left ${
+                activeMenu === item.id || activeMenu.startsWith(item.id + '.')
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </button>
+            {(item.children || []).map(child => (
+              <button
+                type="button"
+                key={child.id}
+                onClick={() => handleMenuClick(child.id)}
+                className={`w-full flex items-center gap-2 pl-8 pr-3 py-1.5 rounded-lg text-xs transition-colors text-left ${
+                  activeMenu === child.id
+                    ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                    : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
+                <span className="truncate">{child.label}</span>
+              </button>
+            ))}
+          </div>
+        ))}
+      </nav>
+    </aside>
+  );
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900 selection:bg-indigo-500 selection:text-white">
       
@@ -601,6 +687,18 @@ export function App() {
                 <span className="hidden sm:inline">Exportar CSV</span>
               </button>
 
+              {/* Role Selector (testa permissões de menu) */}
+              <select
+                value={currentUserRole}
+                onChange={e => handleRoleChange(e.target.value)}
+                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold outline-none"
+                title="Trocar role (permissões de menu)"
+              >
+                {availableRoles.map(r => (
+                  <option key={r.roleId} value={r.roleId}>{r.roleName}</option>
+                ))}
+              </select>
+
               {/* Admin Panel Button */}
               <button
                 id="btn-open-admin"
@@ -641,10 +739,14 @@ export function App() {
         </div>
       </div>
 
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+      <div className="flex flex-1 min-h-0">
+        <Sidebar />
+
+        {/* Main Container */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
 
         {/* 4. Search & Prospecting Control Center */}
+        {activePage === 'prospector' && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 md:p-6 space-y-4">
           
           {/* Header of Search with Auto-Discovery Badge */}
@@ -843,9 +945,10 @@ export function App() {
           )}
 
         </div>
+        )}
 
         {/* 5. Metrics & ICP Distribution Dashboard */}
-        {leads.length > 0 && (
+        {activePage === 'dashboard' && leads.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             
             {/* Total Leads */}
@@ -940,7 +1043,7 @@ export function App() {
         )}
 
         {/* 6. Filter Toolbar & View Mode Switcher */}
-        {leads.length > 0 && (
+        {activePage === 'prospector' && leads.length > 0 && (
           <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               
@@ -1084,7 +1187,8 @@ export function App() {
         )}
 
         {/* 7. Main Leads Content Area */}
-        {leads.length === 0 ? (
+        {activePage === 'prospector' && (
+          leads.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200 p-10 md:p-14 text-center shadow-sm space-y-6">
             <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-indigo-500/20">
               <Sparkles className="w-8 h-8" />
@@ -1145,9 +1249,17 @@ export function App() {
               />
             ))}
           </div>
+        ))}
+
+        {activePage === 'dashboard' && leads.length === 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center shadow-sm space-y-4">
+            <p className="text-sm text-gray-500">Nenhum lead processado ainda.</p>
+            <button type="button" onClick={() => handleMenuClick('prospector')} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold">Ir para Prospecção</button>
+          </div>
         )}
 
       </main>
+      </div>
 
       {/* 8. Modals */}
       
