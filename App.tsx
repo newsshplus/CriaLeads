@@ -4,12 +4,25 @@ import {
   PieChart, Phone, XCircle, Globe2, ShieldCheck, Square, Mail, 
   CheckSquare, Loader2, Sparkles, SlidersHorizontal, Layers, 
   Flame, Zap, AlertTriangle, Send, FileCode, CheckCircle2, 
-  Building2, Users, ArrowUpRight, BarChart3, LayoutGrid, Table as TableIcon,
-  Play, HelpCircle, ChevronRight, TrendingUp, Key, Cpu
+  Building2, Users, ArrowUpRight, BarChart3, LayoutDashboard, Table as TableIcon,
+  Play, HelpCircle, ChevronRight, TrendingUp, Key, Cpu,
+  Target, GitBranch, List, Filter as FilterIcon, Download as DownloadIcon,
+  Building2 as Building2Icon, Webhook, Brain, Mic, History,
+  MessageSquare, Mail as MailIcon, Calendar, ShieldAlert, 
+  Funnel, Settings, Key as KeyIcon, Link2, Globe, CreditCard,
+  Shield, Lock, FileText, ShieldAlert as ShieldAlertIcon,
+  Eye, EyeOff, ChevronDown, ChevronRight as ChevronRightIcon,
+  Menu, Users as UsersIcon, Key as KeyIcon2, Lock as LockIcon,
+  Unlock, FileCode as FileCodeIcon, Download as DownloadIcon2,
+  LayoutGrid, Table as TableIcon2,
+  ChevronRight as ChevronRightIcon2, TrendingUp as TrendingUpIcon,
+  Key as KeyIcon3, Cpu as CpuIcon,
 } from 'lucide-react';
 import { 
   Lead, SearchParams, FilterState, SortOption, DashboardStats, 
-  BusinessProfile, ScrapingEngineStatus, IcpTier, HighTicketNicheRecommendation 
+  BusinessProfile, ScrapingEngineStatus, IcpTier, HighTicketNicheRecommendation,
+  MenuItem, MenuItemId, UserPermissions,
+  DEFAULT_MENU_ITEMS
 } from './types';
 import { 
   DEFAULT_BUSINESS_PROFILE, SUPPORTED_COUNTRIES, BRAZIL_STATES, 
@@ -27,6 +40,15 @@ import {
   saveContactedLead 
 } from './services/storageService';
 import { getAiConfig } from './services/aiProviderService';
+import { 
+  getAdminConfig, 
+  getEffectivePermissions, 
+  isMenuItemVisible, 
+  getVisibleMenuItems,
+  getCurrentUserRole,
+  setCurrentUserRole,
+  DEFAULT_ROLES 
+} from './services/adminPanelService';
 
 import LeadCard from './components/LeadCard';
 import PipelineTable from './components/PipelineTable';
@@ -38,6 +60,7 @@ import JsonViewerModal from './components/JsonViewerModal';
 import ScrapingPipelineBanner from './components/ScrapingPipelineBanner';
 import AiLiveCopilotModal from './components/AiLiveCopilotModal';
 import CountrySelectModal from './components/CountrySelectModal';
+import AdminPanelModal from './components/AdminPanelModal';
 
 // --- UtilitÃ¡rios de deduplicaÃ§Ã£o/merge de leads ---
 const normalizeName = (name: string) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -175,6 +198,9 @@ export function App() {
   const [isWebhookModalOpen, setIsWebhookModalOpen] = useState(false);
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRoleState] = useState<string>(() => getCurrentUserRole());
+  const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>(() => getEffectivePermissions());
 
   // AI Live Copilot State
   const [selectedLeadForLiveCopilot, setSelectedLeadForLiveCopilot] = useState<Lead | null>(null);
@@ -573,6 +599,17 @@ export function App() {
               >
                 <Download className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Exportar CSV</span>
+              </button>
+
+              {/* Admin Panel Button */}
+              <button
+                id="btn-open-admin"
+                onClick={() => setIsAdminPanelOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-900/40 hover:bg-amber-900/60 text-amber-200 border border-amber-700/50 transition-colors"
+                title="Painel de Administração - Menus & Permissões"
+              >
+                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Admin</span>
               </button>
             </div>
 
@@ -1164,6 +1201,12 @@ export function App() {
         isOpen={isJsonModalOpen}
         onClose={() => setIsJsonModalOpen(false)}
         leads={leads}
+      />
+
+      {/* Admin Panel Modal */}
+      <AdminPanelModal
+        isOpen={isAdminPanelOpen}
+        onClose={() => setIsAdminPanelOpen(false)}
       />
 
     </div>

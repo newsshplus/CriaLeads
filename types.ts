@@ -493,3 +493,351 @@ export interface DashboardStats {
   leadsWithEmail: number;
   estimatedPipelineValue: string;
 }
+
+/* ============================================================
+   MENU / NAVIGATION PERMISSION SYSTEM (Admin Panel)
+   ============================================================ */
+
+export type MenuItemId = 
+  | 'dashboard'
+  | 'prospector'
+  | 'prospector.search'
+  | 'prospector.auto_discovery'
+  | 'prospector.pipeline'
+  | 'prospector.leads'
+  | 'prospector.filters'
+  | 'prospector.export'
+  | 'crm'
+  | 'crm.criahub'
+  | 'crm.webhooks'
+  | 'crm.pipeline'
+  | 'crm.contacts'
+  | 'copilot'
+  | 'copilot.live'
+  | 'copilot.history'
+  | 'outreach'
+  | 'outreach.whatsapp'
+  | 'outreach.email'
+  | 'outreach.cadence'
+  | 'outreach.objections'
+  | 'outreach.deliverability'
+  | 'analytics'
+  | 'analytics.dashboard'
+  | 'analytics.funnel'
+  | 'analytics.roi'
+  | 'settings'
+  | 'settings.profile'
+  | 'settings.ai_keys'
+  | 'settings.integrations'
+  | 'settings.country'
+  | 'settings.team'
+  | 'settings.billing'
+  | 'admin'
+  | 'admin.users'
+  | 'admin.roles'
+  | 'admin.permissions'
+  | 'admin.logs'
+  | 'admin.audit';
+
+export interface MenuItem {
+  id: MenuItemId;
+  label: string;
+  icon?: string; // lucide-react icon name
+  path?: string; // optional route path
+  parentId?: MenuItemId; // for submenus
+  order: number;
+  visible: boolean; // global visibility (can be overridden by permissions)
+  requiredPermission?: string; // custom permission string
+  badge?: string; // optional badge (e.g., "Novo", count)
+  children?: MenuItem[];
+}
+
+export interface RolePermission {
+  roleId: string;
+  roleName: string;
+  permissions: Record<MenuItemId, boolean>; // true = visible, false = hidden
+}
+
+export interface UserPermissions {
+  userId: string;
+  roleId: string;
+  customPermissions?: Record<MenuItemId, boolean>; // override role permissions
+}
+
+export interface AdminMenuConfig {
+  version: number;
+  updatedAt: string;
+  updatedBy: string;
+  menuItems: MenuItem[];
+  roles: RolePermission[];
+  defaultRoleId: string;
+}
+
+export const DEFAULT_MENU_ITEMS: MenuItem[] = [
+  // Dashboard
+  { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard', path: '/', order: 1, visible: true },
+  
+  // Prospector (Prospecção)
+  { id: 'prospector', label: 'Prospecção', icon: 'Target', order: 10, visible: true, children: [
+    { id: 'prospector.search', label: 'Busca & Descoberta', icon: 'Search', path: '/prospector/search', order: 1, visible: true },
+    { id: 'prospector.auto_discovery', label: 'Auto-Discovery Alto Ticket', icon: 'Zap', path: '/prospector/auto', order: 2, visible: true },
+    { id: 'prospector.pipeline', label: 'Pipeline de Leads', icon: 'Pipeline', path: '/prospector/pipeline', order: 3, visible: true },
+    { id: 'prospector.leads', label: 'Lista de Leads', icon: 'List', path: '/prospector/leads', order: 4, visible: true },
+    { id: 'prospector.filters', label: 'Filtros Avançados', icon: 'Filter', path: '/prospector/filters', order: 5, visible: true },
+    { id: 'prospector.export', label: 'Exportar Leads', icon: 'Download', path: '/prospector/export', order: 6, visible: true },
+  ]},
+  
+  // CRM
+  { id: 'crm', label: 'CRM & Automação', icon: 'Building2', order: 20, visible: true, children: [
+    { id: 'crm.criahub', label: 'Criahub CRM', icon: 'Building2', path: '/crm/criahub', order: 1, visible: true },
+    { id: 'crm.webhooks', label: 'Webhooks & n8n', icon: 'Webhook', path: '/crm/webhooks', order: 2, visible: true },
+    { id: 'crm.pipeline', label: 'Pipeline CRM', icon: 'Pipeline', path: '/crm/pipeline', order: 3, visible: true },
+    { id: 'crm.contacts', label: 'Contatos & Sync', icon: 'Users', path: '/crm/contacts', order: 4, visible: true },
+  ]},
+  
+  // Copilot
+  { id: 'copilot', label: 'Copilot IA', icon: 'Brain', order: 30, visible: true, children: [
+    { id: 'copilot.live', label: 'Copilot Ao Vivo', icon: 'Mic', path: '/copilot/live', order: 1, visible: true },
+    { id: 'copilot.history', label: 'Histórico & Análises', icon: 'History', path: '/copilot/history', order: 2, visible: true },
+  ]},
+  
+  // Outreach (Omnichannel)
+  { id: 'outreach', label: 'Outreach Omnichannel', icon: 'MessageSquare', order: 40, visible: true, children: [
+    { id: 'outreach.whatsapp', label: 'WhatsApp & Evolution', icon: 'MessageSquare', path: '/outreach/whatsapp', order: 1, visible: true },
+    { id: 'outreach.email', label: 'Email & Deliverability', icon: 'Mail', path: '/outreach/email', order: 2, visible: true },
+    { id: 'outreach.cadence', label: 'Cadência 21 Dias', icon: 'Calendar', path: '/outreach/cadence', order: 3, visible: true },
+    { id: 'outreach.objections', label: 'Objection Crusher', icon: 'ShieldAlert', path: '/outreach/objections', order: 4, visible: true },
+    { id: 'outreach.deliverability', label: 'Deliverability Guardian', icon: 'ShieldCheck', path: '/outreach/deliverability', order: 5, visible: true },
+  ]},
+  
+  // Analytics
+  { id: 'analytics', label: 'Analytics & ROI', icon: 'BarChart3', order: 50, visible: true, children: [
+    { id: 'analytics.dashboard', label: 'Dashboard Executivo', icon: 'LayoutDashboard', path: '/analytics', order: 1, visible: true },
+    { id: 'analytics.funnel', label: 'Funil de Conversão', icon: 'Funnel', path: '/analytics/funnel', order: 2, visible: true },
+    { id: 'analytics.roi', label: 'ROI & Pipeline Value', icon: 'TrendingUp', path: '/analytics/roi', order: 3, visible: true },
+  ]},
+  
+  // Settings
+  { id: 'settings', label: 'Configurações', icon: 'Settings', order: 60, visible: true, children: [
+    { id: 'settings.profile', label: 'Perfil & Site', icon: 'Briefcase', path: '/settings/profile', order: 1, visible: true },
+    { id: 'settings.ai_keys', label: 'Chaves IA (Groq/Gemini)', icon: 'Key', path: '/settings/ai-keys', order: 2, visible: true },
+    { id: 'settings.integrations', label: 'Integrações (CRM, n8n)', icon: 'Link2', path: '/settings/integrations', order: 3, visible: true },
+    { id: 'settings.country', label: 'País & Moeda', icon: 'Globe', path: '/settings/country', order: 4, visible: true },
+    { id: 'settings.team', label: 'Equipe & Acessos', icon: 'Users', path: '/settings/team', order: 5, visible: true },
+    { id: 'settings.billing', label: 'Faturamento', icon: 'CreditCard', path: '/settings/billing', order: 6, visible: true },
+  ]},
+  
+  // Admin
+  { id: 'admin', label: 'Painel Admin', icon: 'Shield', order: 90, visible: true, children: [
+    { id: 'admin.users', label: 'Usuários', icon: 'Users', path: '/admin/users', order: 1, visible: true },
+    { id: 'admin.roles', label: 'Roles & Permissões', icon: 'Shield', path: '/admin/roles', order: 2, visible: true },
+    { id: 'admin.permissions', label: 'Permissões de Menu', icon: 'Lock', path: '/admin/permissions', order: 3, visible: true, badge: 'Novo' },
+    { id: 'admin.logs', label: 'Logs & Auditoria', icon: 'FileText', path: '/admin/logs', order: 4, visible: true },
+    { id: 'admin.audit', label: 'Trilha de Auditoria', icon: 'ShieldAlert', path: '/admin/audit', order: 5, visible: true },
+  ]},
+];
+
+export const DEFAULT_ROLES: RolePermission[] = [
+  {
+    roleId: 'super_admin',
+    roleName: 'Super Admin',
+    permissions: Object.fromEntries(
+      DEFAULT_MENU_ITEMS.flatMap(item => {
+        const entries: [MenuItemId, boolean][] = [[item.id, true]];
+        if (item.children) {
+          item.children.forEach(c => entries.push([c.id, true]));
+        }
+        return entries;
+      })
+    ) as Record<MenuItemId, boolean>,
+  },
+  {
+    roleId: 'admin',
+    roleName: 'Admin da Empresa',
+    permissions: {
+      dashboard: true,
+      prospector: true,
+      'prospector.search': true,
+      'prospector.auto_discovery': true,
+      'prospector.pipeline': true,
+      'prospector.leads': true,
+      'prospector.filters': true,
+      'prospector.export': true,
+      crm: true,
+      'crm.criahub': true,
+      'crm.webhooks': true,
+      'crm.pipeline': true,
+      'crm.contacts': true,
+      copilot: true,
+      'copilot.live': true,
+      'copilot.history': true,
+      outreach: true,
+      'outreach.whatsapp': true,
+      'outreach.email': true,
+      'outreach.cadence': true,
+      'outreach.objections': true,
+      'outreach.deliverability': true,
+      analytics: true,
+      'analytics.dashboard': true,
+      'analytics.funnel': true,
+      'analytics.roi': true,
+      settings: true,
+      'settings.profile': true,
+      'settings.ai_keys': true,
+      'settings.integrations': true,
+      'settings.country': true,
+      'settings.team': true,
+      'settings.billing': false,
+      admin: true,
+      'admin.users': true,
+      'admin.roles': true,
+      'admin.permissions': true,
+      'admin.logs': true,
+      'admin.audit': true,
+    } as Record<MenuItemId, boolean>,
+  },
+  {
+    roleId: 'manager',
+    roleName: 'Gerente de Vendas',
+    permissions: {
+      dashboard: true,
+      prospector: true,
+      'prospector.search': true,
+      'prospector.auto_discovery': true,
+      'prospector.pipeline': true,
+      'prospector.leads': true,
+      'prospector.filters': true,
+      'prospector.export': true,
+      crm: true,
+      'crm.criahub': true,
+      'crm.webhooks': true,
+      'crm.pipeline': true,
+      'crm.contacts': true,
+      copilot: true,
+      'copilot.live': true,
+      'copilot.history': true,
+      outreach: true,
+      'outreach.whatsapp': true,
+      'outreach.email': true,
+      'outreach.cadence': true,
+      'outreach.objections': true,
+      'outreach.deliverability': true,
+      analytics: true,
+      'analytics.dashboard': true,
+      'analytics.funnel': true,
+      'analytics.roi': true,
+      settings: true,
+      'settings.profile': true,
+      'settings.ai_keys': false,
+      'settings.integrations': false,
+      'settings.country': true,
+      'settings.team': false,
+      'settings.billing': false,
+      admin: false,
+      'admin.users': false,
+      'admin.roles': false,
+      'admin.permissions': false,
+      'admin.logs': false,
+      'admin.audit': false,
+    } as Record<MenuItemId, boolean>,
+  },
+  {
+    roleId: 'sdr',
+    roleName: 'SDR / Pré-Vendas',
+    permissions: {
+      dashboard: true,
+      prospector: true,
+      'prospector.search': true,
+      'prospector.auto_discovery': true,
+      'prospector.pipeline': true,
+      'prospector.leads': true,
+      'prospector.filters': false,
+      'prospector.export': false,
+      crm: true,
+      'crm.criahub': true,
+      'crm.webhooks': false,
+      'crm.pipeline': true,
+      'crm.contacts': true,
+      copilot: true,
+      'copilot.live': true,
+      'copilot.history': false,
+      outreach: true,
+      'outreach.whatsapp': true,
+      'outreach.email': true,
+      'outreach.cadence': true,
+      'outreach.objections': true,
+      'outreach.deliverability': false,
+      analytics: true,
+      'analytics.dashboard': true,
+      'analytics.funnel': true,
+      'analytics.roi': false,
+      settings: true,
+      'settings.profile': true,
+      'settings.ai_keys': false,
+      'settings.integrations': false,
+      'settings.country': true,
+      'settings.team': false,
+      'settings.billing': false,
+      admin: false,
+      'admin.users': false,
+      'admin.roles': false,
+      'admin.permissions': false,
+      'admin.logs': false,
+      'admin.audit': false,
+    } as Record<MenuItemId, boolean>,
+  },
+  {
+    roleId: 'viewer',
+    roleName: 'Visualizador (Somente Leitura)',
+    permissions: {
+      dashboard: true,
+      prospector: true,
+      'prospector.search': true,
+      'prospector.auto_discovery': true,
+      'prospector.pipeline': true,
+      'prospector.leads': true,
+      'prospector.filters': false,
+      'prospector.export': false,
+      crm: true,
+      'crm.criahub': false,
+      'crm.webhooks': false,
+      'crm.pipeline': true,
+      'crm.contacts': true,
+      copilot: false,
+      'copilot.live': false,
+      'copilot.history': false,
+      outreach: true,
+      'outreach.whatsapp': false,
+      'outreach.email': false,
+      'outreach.cadence': false,
+      'outreach.objections': false,
+      'outreach.deliverability': false,
+      analytics: true,
+      'analytics.dashboard': true,
+      'analytics.funnel': false,
+      'analytics.roi': false,
+      settings: true,
+      'settings.profile': true,
+      'settings.ai_keys': false,
+      'settings.integrations': false,
+      'settings.country': false,
+      'settings.team': false,
+      'settings.billing': false,
+      admin: false,
+      'admin.users': false,
+      'admin.roles': false,
+      'admin.permissions': false,
+      'admin.logs': false,
+      'admin.audit': false,
+    } as Record<MenuItemId, boolean>,
+  },
+];
+
+export const DEFAULT_ADMIN_CONFIG: AdminMenuConfig = {
+  version: 1,
+  updatedAt: new Date().toISOString(),
+  updatedBy: 'system',
+  menuItems: DEFAULT_MENU_ITEMS,
+  roles: DEFAULT_ROLES,
+  defaultRoleId: 'sdr',
+};

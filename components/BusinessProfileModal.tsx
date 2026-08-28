@@ -709,14 +709,13 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
                 <select
                   value={aiConfig.groqModel}
                   onChange={e => {
-                    const updated = { ...aiConfig, groqModel: e.target.value };
+                    const updated = { ...aiConfig, groqModel: e.target.value as AiEngineConfig['groqModel'] };
                     setAiConfig(updated);
                     saveAiConfig(updated);
                   }}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
                   <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Recomendado - Ultra Inteligente)</option>
-                  <option value="llama-3.1-70b-versatile">Llama 3.1 70B Versatile</option>
                   <option value="mixtral-8x7b-32768">Mixtral 8x7B 32k (Ultra Rápido)</option>
                   <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Ultra Econômico)</option>
                 </select>
