@@ -52,16 +52,6 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
   // País selecionado -> idioma de voz do copiloto (pt-PT, pt-BR, en-US, es-ES...)
   const speechLang = getCurrencyConfig(getSavedCountry()).speechLang;
 
-  // Mic & Screen Permission State (prospecção por chamada, áudio ou vídeo)
-  const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
-  const [screenPermission, setScreenPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
-  const [permissionBusy, setPermissionBusy] = useState<'none' | 'mic' | 'screen'>('none');
-  const micStreamRef = useRef<MediaStream | null>(null);
-  const screenStreamRef = useRef<MediaStream | null>(null);
-
-  // País selecionado -> idioma de voz do copiloto (pt-PT, pt-BR, en-US, es-ES...)
-  const speechLang = getCurrencyConfig(getSavedCountry()).speechLang;
-
   // Initialize or reset analysis on lead change or open
   useEffect(() => {
     if (isOpen && lead) {

@@ -1,6 +1,11 @@
 {
   "name": "Architect-Prospector AI",
-  "description": "Sistema autonômo de inteligência de prospecção B2B com Deep Matching, ICP Score A/B/C, Enriquecimento BANT+, Tech Stack Scanner, Abordagem Omnichannel, Protocolo Deliverability & Anti-Ban Guardian, Copiloto IA em Tempo Real para Chamadas/WhatsApp (Áudio e Texto), e Integração Nativa de Webhooks para CriahubCRM, Evolution API e Resend Email.",
+  "description": "Sistema autônomo de prospecção dual (B2B Empresas & Imóveis de Particulares FSBO) com Idealista, OLX, Fotocasa, ZAP, Apollo.io, Google Maps, Lotes de pesquisa, ICP Score, scripts SDR e quebra de objeções.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "display-capture"
+  ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]

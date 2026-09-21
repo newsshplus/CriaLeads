@@ -10,7 +10,7 @@ import { analyzeBusinessProfile } from '../services/geminiService';
 import { saveBusinessProfile } from '../services/storageService';
 import { getAiConfig, saveAiConfig, testGroqKey } from '../services/aiProviderService';
 import { getRapidApiToken, saveRapidApiToken } from '../services/letscrapeService';
-import { DEFAULT_HIGH_TICKET_NICHES, GEMINI_MODELS } from '../constants';
+import { DEFAULT_HIGH_TICKET_NICHES, GEMINI_MODELS, GROQ_MODELS } from '../constants';
 import { getSavedCountry, getCurrencyConfig } from '../services/countryService';
 
 interface BusinessProfileModalProps {
@@ -707,18 +707,21 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
                   Modelo Groq Ativo
                 </label>
                 <select
-                  value={aiConfig.groqModel}
+                  value={aiConfig.groqModel || 'llama-3.3-70b-versatile'}
                   onChange={e => {
-                    const updated = { ...aiConfig, groqModel: e.target.value as AiEngineConfig['groqModel'] };
+                    const updated = { ...aiConfig, groqModel: e.target.value };
                     setAiConfig(updated);
                     saveAiConfig(updated);
                   }}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
-                  <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Recomendado - Ultra Inteligente)</option>
-                  <option value="mixtral-8x7b-32768">Mixtral 8x7B 32k (Ultra Rápido)</option>
-                  <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Ultra Econômico)</option>
+                  {GROQ_MODELS.map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
                 </select>
+                <p className="text-[10px] text-slate-400">
+                  {GROQ_MODELS.find(m => m.id === (aiConfig.groqModel || 'llama-3.3-70b-versatile'))?.note || '100% Gratuito no console.groq.com'}
+                </p>
               </div>
 
               {/* Gemini Model Choice */}

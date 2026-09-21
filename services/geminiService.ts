@@ -3,9 +3,12 @@ import { buildDeliverabilityGuardian, buildEvolutionAndResendPayloads } from "./
 import { buildObjectionCrusherMatrix } from "./objectionCrusherService";
 import { buildCadenceMaster } from "./cadenceService";
 import { generateAutonomousFallbackLeads } from "./syntheticProspector";
-import { executeAiCompletion, scanWebsiteAndExtractProfile } from "./aiProviderService";
+import { executeAiCompletion, scanWebsiteAndExtractProfile, getAiConfig } from "./aiProviderService";
 import { getCurrencyConfig } from "./countryService";
 import { RealBusiness, prioritizeRealBusinesses, searchRealBusinesses } from "./letscrapeService";
+import { auditLeadsWithSupervisor } from "./supervisorService";
+import { getCustomPrompts } from "./promptConfigService";
+import { extractCleanBrandName } from "./freeB2bProspectorService";
 
 const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -27,12 +30,12 @@ export async function analyzeBusinessProfile(profile: Partial<BusinessProfile>, 
 }
 
 /**
- * Deriva termos de busca reais a partir do keyword ou dos nichos de alto ticket recomendados.
- * (Buscar "auto" na LetScrape não funciona — precisamos de termos concretos como "clínica estética".)
+ * Deriva termos de busca reais e concretos a partir do keyword ou dos nichos de alto ticket recomendados.
+ * (Google Maps / RapidAPI LetScrape precisam de termos comerciais específicos como "clínica médica", "imobiliária", "advocacia")
  */
 function deriveRealSearchTerms(keyword: string, businessProfile: BusinessProfile): string[] {
   const k = (keyword || '').trim().toLowerCase();
-  const isAuto = !k || k === 'auto' || k === 'alto ticket' || k === 'todos' || k === 'multi-nicho' || k === 'geral';
+  const isAuto = !k || k === 'auto' || k === 'alto ticket' || k === 'todos' || k === 'multi-nicho' || k === 'geral' || k === 'b2b';
 
   if (!isAuto) {
     return [keyword.trim()];
@@ -41,16 +44,20 @@ function deriveRealSearchTerms(keyword: string, businessProfile: BusinessProfile
   const niches = businessProfile.recommendedHighTicketNiches || [];
   const terms = niches.map(n => {
     const name = (n.niche || n.category || '').toLowerCase();
-    if (/(clínic|clinica|saude|saúde|estetic|estética|odonto|medic|hospital)/.test(name)) return "clínica estética";
+    if (/(clínic|clinica|saude|saúde|estetic|estética|odonto|medic|hospital)/.test(name)) return "clínica médica";
     if (/(advocac|advogad|juridic|direito|tributar)/.test(name)) return "escritório de advocacia";
-    if (/(imobiliar|incorporadora|loteadora|imóve|imove)/.test(name)) return "imobiliária de alto padrão";
-    if (/(industri|metalurg|distribuidor|fabrica|fábrica|logistic)/.test(name)) return "indústria";
-    if (/(consultor|bpo|gestao|gestão|auditori|advisory|financ)/.test(name)) return "consultoria empresarial";
+    if (/(imobiliar|incorporadora|loteadora|imóve|imove)/.test(name)) return "imobiliária";
+    if (/(industri|metalurg|distribuidor|fabrica|fábrica|logistic)/.test(name)) return "indústria metalúrgica";
+    if (/(consultor|bpo|gestao|gestão|auditori|advisory|financ|contabil)/.test(name)) return "consultoria de gestão";
+    if (/(arquitet|decorac|engenhar)/.test(name)) return "escritório de arquitetura";
     return name.split('&')[0].trim().split(/\s+/).slice(0, 3).join(' ');
   });
 
   const unique = [...new Set(terms.filter(Boolean))];
-  return unique.length > 0 ? unique.slice(0, 4) : ["empresas B2B de alto ticket"];
+  // Se não houver nichos definidos, utiliza os 4 nichos mais lucrativos com maior demanda por marketing, sites e CRM:
+  return unique.length > 0
+    ? unique.slice(0, 4)
+    : ["clínica médica", "escritório de advocacia", "imobiliária", "indústria"];
 }
 
 /**
@@ -340,7 +347,7 @@ function buildLeadFromRealBusiness(
       keyDecisionMaker: decName,
       role: decRole,
       orgStructure: raw?.bantPlus?.authority?.orgStructure || "Diretoria Comercial / Operações",
-      linkedinSearchUrl: `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(leadName)}`
+      linkedinSearchUrl: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${decName && !decName.toLowerCase().includes('diretoria') ? decName : ''} ${extractCleanBrandName(leadName)}`.trim())}`
     },
     need: {
       operationalFlaws: keyFlaws,
@@ -376,33 +383,43 @@ function buildLeadFromRealBusiness(
         ]
   };
 
+  const cleanBrand = extractCleanBrandName(leadName);
   const decisionMaker = {
     name: decName,
     role: decRole,
     directEmail: decEmail,
     directPhone: decPhone,
-    linkedin: `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(leadName)}`
+    linkedin: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${decName && !decName.toLowerCase().includes('diretoria') && !decName.toLowerCase().includes('responsável') ? decName : ''} ${cleanBrand}`.trim())}`,
+    linkedinDirectSearch: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${cleanBrand} ${decRole || ''}`.trim())}`,
+    linkedinCompanyUrl: `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(cleanBrand)}`,
+    googleDorkUrl: `https://www.google.com/search?q=${encodeURIComponent(`site:linkedin.com/in "${cleanBrand}" (CEO OR Sócio OR Fundador OR Diretor OR Gerente)`)}`
   };
+
+  const greetingTarget = decName && !decName.toLowerCase().includes('responsável') && !decName.toLowerCase().includes('diretoria')
+    ? decName
+    : `equipe da ${leadName}`;
+
+  const primaryGap = keyFlaws[0] || defaultPain || "atendimento manual e demora no tempo de resposta do WhatsApp";
 
   const outreach = {
     whatsapp: {
-      option1Curiosity: raw?.outreach?.whatsapp?.option1Curiosity || `Olá ${decName}, tudo bem? Notei que a ${leadName} tem presença ativa em ${real.city || locationContext} mas há sinais de ausência de triagem automática no WhatsApp após o horário comercial, o que faz empresas perderem até 40% das oportunidades. Posso te mandar um vídeo de 20s mostrando como resolver isso?`,
-      option2RoiDirect: raw?.outreach?.whatsapp?.option2RoiDirect || `Fala ${decName}! Implementamos recentemente um SDR de IA para ${real.category || 'o setor'} que atende em 15s e aumentou em 38% os agendamentos qualificados. Vale batermos 5 minutos nessa semana?`
+      option1Curiosity: raw?.outreach?.whatsapp?.option1Curiosity || `Olá ${greetingTarget}, tudo bem? Estava analisando a presença digital da ${leadName} em ${real.city || locationContext} e notei um ponto crítico: ${primaryGap}, o que faz empresas do setor perderem até 35% das oportunidades de fechamento.\n\nNa CriaHub nós resolvemos isso com agentes autônomos de IA que respondem em 20s. Posso te mandar um vídeo de 30s mostrando como funciona?`,
+      option2RoiDirect: raw?.outreach?.whatsapp?.option2RoiDirect || `Olá ${greetingTarget}! Vi a atuação da ${leadName}. Implementamos recentemente na CriaHub uma esteira de SDR de IA que atende em 15s e aumentou em 40% os agendamentos qualificados no calendário comercial. Vale batermos 5 minutos nessa semana?`
     },
     email: {
-      subject: raw?.outreach?.email?.subject || `${leadName} + ${businessProfile.businessName}: ponto de melhoria no canal comercial`,
-      bodyAida: raw?.outreach?.email?.bodyAida || `Olá ${decName},\n\nAnalisei a operação digital da ${leadName} e identifiquei sinais de falhas de conversão imediatas, especialmente a ausência de resposta imediata nos canais de anúncio...\n\nPodemos falar 10 minutos na quinta às 14h?`,
-      bodyPas: raw?.outreach?.email?.bodyPas || `Olá ${decName},\n\nHoje, mais de 50% dos clientes buscam atendimento fora do horário comercial. Sem um fluxo autônomo, esses leads procuram o concorrente direto...\n\nNossa IA resolve isso de ponta a ponta. Faz sentido conversar?`
+      subject: raw?.outreach?.email?.subject || `${greetingTarget} (${leadName}): oportunidade de melhoria no fluxo comercial`,
+      bodyAida: raw?.outreach?.email?.bodyAida || `Olá ${decName || 'Diretoria'},\n\nAnalisei a operação digital da ${leadName} em ${real.city || locationContext} e identifiquei um ponto de atenção prioritário:\n\n👉 ${primaryGap}.\n\nQuando potenciais clientes buscam a ${leadName} mas enfrentam lentidão no primeiro contato, a maioria acaba procurando concorrentes diretos.\n\nNa CriaHub, nós implementamos um ecossistema com Inteligência Artificial e automação de vendas que qualifica prospects no WhatsApp 24/7 e agenda reuniões diretamente no calendário da sua diretoria.\n\nFaz sentido eu te enviar um diagnóstico em vídeo de 2 minutos demonstrando esses gargalos?\n\nAtenciosamente,\nEquipe CriaHub`,
+      bodyPas: raw?.outreach?.email?.bodyPas || `Olá ${decName || 'Diretoria'},\n\nO maior desafio de empresas como a ${leadName} é ver clientes qualificados navegando pelo site ou enviando mensagens, mas desistindo por falta de atendimento instantâneo.\n\nEssa perda invisível encarece os investimentos comerciais.\n\nNossa infraestrutura de IA CriaHub elimina esse atrito com triagem de IA 24/7 e agendamento instantâneo.\n\nPodemos falar 10 minutos objetivos nesta semana?`
     },
     coldCall: {
-      iceBreaker5s: raw?.outreach?.coldCall?.iceBreaker5s || `Olá ${decName}, aqui é da ${businessProfile.businessName}. Sei que você não esperava minha ligação, tem 30 segundos?`,
-      anchorQuestion: raw?.outreach?.coldCall?.anchorQuestion || `${decName}, vi que a ${leadName} tem presença ativa mas o retorno no WhatsApp pode demorar horas. Como vocês têm evitado perder os leads que chegam à noite?`,
-      pitch15s: raw?.outreach?.coldCall?.pitch15s || `Nós criamos SDRs de IA que qualificam e agendam consultas em 20 segundos 24 horas por dia. Conseguimos conversar 10 minutos amanhã às 15h para eu te mostrar?`,
+      iceBreaker5s: raw?.outreach?.coldCall?.iceBreaker5s || `Olá ${decName || 'Responsável Comercial'}, aqui é da equipe de inteligência da CriaHub. Sei que você não esperava minha ligação, tem 30 segundos?`,
+      anchorQuestion: raw?.outreach?.coldCall?.anchorQuestion || `${decName || 'Diretoria'}, vi que a ${leadName} tem forte atuação em ${real.city || locationContext}, mas o retorno no WhatsApp pode demorar horas. Como vocês têm evitado perder os leads que chegam fora do horário comercial?`,
+      pitch15s: raw?.outreach?.coldCall?.pitch15s || `Nós criamos SDRs de IA que qualificam e agendam reuniões em 20 segundos 24 horas por dia para empresas do seu porte. Conseguimos conversar 5 minutos amanhã às 15h para eu te mostrar um diagnóstico gratuito?`,
       objectionTips: Array.isArray(raw?.outreach?.coldCall?.objectionTips) && raw.outreach.coldCall.objectionTips.length > 0
         ? raw.outreach.coldCall.objectionTips
         : [
             "Se disser 'Já tenho equipe': 'O sistema apoia sua recepção cuidando da triagem inicial e agendamento para que eles foquem apenas em fechar negócio.'",
-            "Se disser 'Sem tempo': 'Justamente por isso a conversa dura apenas 10 minutos objetivos.'"
+            "Se disser 'Sem tempo': 'Justamente por isso a conversa dura apenas 5 minutos objetivos para te entregar o diagnóstico.'"
           ]
     }
   };
@@ -438,11 +455,17 @@ function buildLeadFromRealBusiness(
     }
   };
 
+  const isRapidApi = real.source === 'letscrape';
+  const originApi = isRapidApi ? 'rapidapi_google_maps' : 'rapidapi_google_maps';
+  const originApiLabel = isRapidApi ? 'Google Maps (LetScrape RapidAPI)' : 'Google Maps (Local)';
+
   const tempLead: Lead = {
     id: `lead-real-${Date.now()}-${index + 1}`,
     name: leadName,
     status: 'new',
     source: 'ai',
+    originApi,
+    originApiLabel,
     category: raw?.category || real.category || keyword || 'B2B',
     rating: real.rating || (typeof raw?.rating === 'number' ? raw.rating : 4.5),
     reviews: real.reviews || (typeof raw?.reviews === 'number' ? raw.reviews : 0),
@@ -472,6 +495,7 @@ function buildLeadFromRealBusiness(
     decisionMaker,
     outreach,
     webhookPayloads,
+    capturedAt: new Date().toLocaleDateString('pt-BR'),
     businessStatus: (real.businessStatus === 'OPEN' ? 'OPERATIONAL' : real.businessStatus === 'CLOSED' ? 'CLOSED_PERMANENTLY' : 'UNKNOWN')
   };
 
@@ -542,7 +566,7 @@ export async function searchAndScoreLeads(
         district,
         radius,
         strictMode,
-        limit: 12,
+        limit: 25,
         signal
       });
       realEngineUsed = res.engineUsed;
@@ -554,7 +578,7 @@ export async function searchAndScoreLeads(
       if (err.name === 'AbortError') throw err;
       realEngineError = err.message || String(err);
     }
-    if (realBusinesses.length >= 12) break;
+    if (realBusinesses.length >= 25) break;
   }
 
   // Remove duplicatas por nome e prioriza empresas com site/telefone/avaliação
@@ -565,7 +589,7 @@ export async function searchAndScoreLeads(
     seen.add(key);
     return true;
   });
-  realBusinesses = prioritizeRealBusinesses(realBusinesses, strictMode).slice(0, 12);
+  realBusinesses = prioritizeRealBusinesses(realBusinesses, strictMode).slice(0, 25);
 
   // ============================================================
   // FASE 2: ENRIQUECIMENTO COM IA (GROQ/GEMINI) — SEM INVENTAR
@@ -585,9 +609,13 @@ export async function searchAndScoreLeads(
         cur.code
       );
 
+      const customPrompts = getCustomPrompts();
+      const aiConfig = getAiConfig();
+      const enrichmentSystemPrompt = customPrompts.enrichmentSystemPrompt || "Você é o mais avançado motor de enriquecimento e inteligência B2B de alto ticket do mundo. NUNCA invente identidade, telefone, e-mail ou decisor — enriqueça apenas as empresas reais fornecidas.";
+
       const aiRes = await executeAiCompletion({
         prompt,
-        systemPrompt: "Você é o mais avançado motor de enriquecimento e inteligência B2B de alto ticket do mundo. NUNCA invente identidade, telefone, e-mail ou decisor — enriqueça apenas as empresas reais fornecidas.",
+        systemPrompt: enrichmentSystemPrompt,
         temperature: 0.35,
         jsonMode: true,
         signal
@@ -603,7 +631,7 @@ export async function searchAndScoreLeads(
         enrichedByIndex[idx] = item;
       });
 
-      const processedLeads: Lead[] = realBusinesses.map((real, index) =>
+      let processedLeads: Lead[] = realBusinesses.map((real, index) =>
         buildLeadFromRealBusiness(
           real,
           enrichedByIndex[index],
@@ -617,10 +645,19 @@ export async function searchAndScoreLeads(
         )
       );
 
+      // FASE 2.5: AGENTE SUPERVISOR DE IA (AUDITORIA DE QUALIDADE & VERACIDADE)
+      if (aiConfig.supervisorAiEnabled !== false && processedLeads.length > 0) {
+        try {
+          processedLeads = await auditLeadsWithSupervisor(processedLeads, businessProfile, signal);
+        } catch (supErr) {
+          console.warn("Supervisor audit warning:", supErr);
+        }
+      }
+
       const engineStatus: ScrapingEngineStatus = {
         primary: { name: realEngineUsed, status: "ACTIVE" },
         secondary: { name: "OpenStreetMap Overpass (Fallback Gratuito)", status: realEngineUsed.toLowerCase().includes("openstreetmap") ? "ACTIVE" : "FALLBACK_READY" },
-        tertiary: { name: `AI Enrichment (${usedEngineName})`, status: "ACTIVE" },
+        tertiary: { name: `AI Enrichment + Supervisor (${usedEngineName})`, status: "ACTIVE" },
         activeEngine: realEngineUsed,
         lastLatencyMs: latencyMs,
         extractedCount: processedLeads.length

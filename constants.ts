@@ -386,6 +386,111 @@ export const HIGH_TICKET_NICHES_BY_COUNTRY: Record<string, HighTicketNicheRecomm
   ]
 };
 
+export const DEFAULT_RAPIDAPI_KEYS: [string, string, string] = [
+  "f3fd7938b2msh23224581e117040p1d9903jsn150fc303f653",
+  "",
+  ""
+];
+
+export const DEFAULT_ENRICHMENT_SYSTEM_PROMPT = `Você é o "Deep BANT & Tech-Stack Enricher", o agente supremo de inteligência de prospecção B2B autônoma de ALTO TICKET.
+Sua missão é enriquecer EMPRESAS REAIS que já foram encontradas e verificadas por uma fonte de dados real (Google Maps / LetScrape RapidAPI / OpenStreetMap).
+Identifique falhas críticas de conversão, maturidade digital, tech stack plausível e gere abordagens comerciais de altíssima conversão.
+NUNCA invente ou altere a identidade real (nome, website, telefone, e-mail, endereço, avaliações) da empresa fornecida.`;
+
+export const DEFAULT_SUPERVISOR_SYSTEM_PROMPT = `Você é o "Supervisor de Qualidade & Auditor de Veracidade B2B".
+Sua função é realizar uma auditoria rigorosa sobre os leads reais raspados e enriquecidos, avaliando:
+1. Veracidade & Consistência: Os dados de contato e endereço condizem com uma empresa real em atividade? O site/domínio é plausível?
+2. Aderência Comercial: O diagnóstico de dores e falhas operacionais faz sentido para o setor/porte da empresa?
+3. Calculo do Reliability Score (0 a 100%): Quão confiável e pronto para disparo este lead está?
+4. Recomendação Tática: Qual o melhor ângulo de ataque para o SDR abordar esta empresa sem soar genérico?
+Seja objetivo, criterioso e focado em proteger a reputação do usuário e a taxa de resposta.`;
+
+export const DEFAULT_COPYWRITER_PROMPT = `Você é um Copywriter B2B de Elite especializado em outbound de altíssima conversão.
+Crie comunicações hiper-personalizadas (WhatsApp de curiosidade, Cold Email AIDA/PAS, Script de Ligação) sem clichês, focando nas falhas e dores reais da empresa.`;
+
+export const DEFAULT_ICP_CLASSIFICATION_PROMPT = `# PROMPT DE CLASSIFICAÇÃO E QUALIFICAÇÃO DE LEADS (ICP) - MATRIZ SÊNIOR
+
+## OBJETIVO
+Você é um Analista de Inteligência Comercial Sênior e Treinador de SDRs. Sua missão é analisar a empresa [NOME DA EMPRESA] e determinar de forma objetiva e criteriosa se vale a pena o time de vendas gastar tempo entrando em contato com ela **agora**.
+
+---
+
+## 1. IDENTIFICAÇÃO E TIPO DE NEGÓCIO
+Classifique a empresa em APENAS uma das categorias abaixo, baseada na evidência principal:
+- **Fabricante/Indústria**
+- **Distribuidor**
+- **Revendedor/Lojista**
+- **Prestador de Serviço**
+
+---
+
+## 2. MATRIZ DE CRITÉRIOS E PONTUAÇÃO (Total: 0 a 100 pontos)
+
+Avalie cada critério rigorosamente. **Para cada item, você deve obrigatoriamente fornecer: [Nota] | [Justificativa Analítica] | [Fonte/Evidência encontrada].**
+
+### A. Perfil Comercial e Porte (Peso Alto - Até 40 pts)
+* **Perfil de Fabricante Confirmado (0 a 15 pts):** A empresa é comprovadamente fabricante ou distribuidora do segmento alvo?
+* **Porte e Capacidade Compatível (0 a 15 pts):** Número de funcionários, faturamento estimado ou volume de operações condizem com o ICP?
+* **Segmento e Potencial de Mercado (0 a 10 pts):** O setor de atuação é altamente lucrativo/prioritário?
+
+### B. Presença Digital e Maturidade (Peso Médio - Até 25 pts)
+* **Qualidade do Site (0 a 15 pts):** O site é moderno, rápido e profissional? (Analise UX, catálogo, HTTPS).
+* **Atividade nas Redes Sociais (0 a 10 pts):** Possui perfis ativos e com postagens recentes (últimos 30 dias)?
+
+### C. Oportunidade e Contato (Peso Alto - Até 35 pts)
+* **Sinais de Necessidade / Dor (0 a 15 pts):** Há indícios claros de que precisam dos nossos serviços? (Ex: site obsoleto, falta de agendamento digital).
+* **Facilidade de Contato (0 a 10 pts):** Existem canais diretos visíveis (e-mail decisor, telefone direto, WhatsApp comercial)?
+* **Localização e Dados Atualizados (0 a 10 pts):** A empresa está na região geográfica atendida e os dados cadastrais são confiáveis?
+
+### REGRA DE PENALIZAÇÃO (TRAVA DE SEGURANÇA)
+Se a empresa possui volume de dados públicos (ex: CNPJ antigo), mas o site é obsoleto, as redes sociais são inativas ou faltam canais diretos de conversão, a pontuação final **NÃO PODE** ultrapassar 50/100, independente dos outros critérios.
+
+---
+
+## 3. FORMATO DA RESPOSTA (SAÍDA ESPERADA)
+
+Use exatamente o formato abaixo para garantir a integração limpa na interface.
+
+**RESUMO DA QUALIFICAÇÃO ICP**
+* **Empresa:** [Nome]
+* **Tipo:** [Categoria Definida]
+* **Score ICP:** [X / 100]
+* **Decisão:** [📞 LIGAR AGORA / ⏳ AGUARDAR / ⛔ DESCARTAR]
+
+---
+
+### DETALHAMENTO DA PONTUAÇÃO
+| Critério | Nota | Justificativa Analítica | Fonte/Evidência |
+| :--- | :--- | :--- | :--- |
+| Fabricante Confirmado | X/15 | ... | ... |
+| Porte Compatível | X/15 | ... | ... |
+| Segmento/Potencial | X/10 | ... | ... |
+| Qualidade do Site | X/15 | ... | ... |
+| Redes Sociais | X/10 | ... | ... |
+| Sinais de Necessidade | X/15 | ... | ... |
+| Facilidade de Contato | X/10 | ... | ... |
+| Localização/Dados | X/10 | ... | ... |
+
+---
+
+### GUIA RÁPIDO DE ABORDAGEM (TREINAMENTO SDR)
+*Com base na análise, sintetize o caminho para o sucesso da ligação.*
+
+* **Gancho Principal (Abertura):** [Crie UMA frase de abertura personalizada citando a empresa e a dor identificada, ex: "Vi que o site de [EMPRESA] ainda não tem agendamento online..."]
+* **Parecer Final (Por que ligar):** [Um parágrafo curto explicando a viabilidade da chamada agora]
+* **Próximo Passo Sugerido:** [Ex: Ligar e oferecer diagnóstico de 5 min]
+
+---
+
+### MATRIZ RÁPIDA DE OBJEÇÕES (TREINAMENTO SDR)
+Identifique as 2 objeções mais prováveis que este lead específico fará e dê a resposta ideal:
+
+1. **Objeção Provável 1:** [Ex: "Já temos agendamento via recepção"]
+   * **Como Contornar:** [Ex: "Perfeito, a maioria dos nossos clientes também tinha! O problema é que a recepção perde até 30% do tempo confirmando dados via WhatsApp. Nós automatizamos essa confirmação."]
+
+2. **Objeção Provável 2:** [Ex: "Não temos orçamento agora"]
+   * **Como Contornar:** [Ex: "Entendo perfeitamente. Por isso mesmo nosso diagnóstico de 5 minutos mostra como recuperar até 5 cadeiras vazias por semana sem custo inicial."]`;
+
 export const DEFAULT_AI_ENGINE_CONFIG: AiEngineConfig = {
   activeProvider: "auto",
   groqKeys: ["", "", ""],
@@ -399,17 +504,46 @@ export const DEFAULT_AI_ENGINE_CONFIG: AiEngineConfig = {
     { index: 1, keyPreview: "Não configurada", status: "UNTESTED" },
     { index: 2, keyPreview: "Não configurada", status: "UNTESTED" }
   ],
+  rapidApiKeys: DEFAULT_RAPIDAPI_KEYS,
+  rapidApiRotationMode: "sequential",
+  activeRapidApiKeyIndex: 0,
+  rapidApiKeyStatuses: [
+    { index: 0, keyPreview: "f3fd79...653", status: "VALID" },
+    { index: 1, keyPreview: "Não configurada", status: "UNTESTED" },
+    { index: 2, keyPreview: "Não configurada", status: "UNTESTED" }
+  ],
+  supervisorAiEnabled: true,
+  supervisorModel: "llama-3.3-70b-versatile",
+  customPrompts: {
+    enrichmentSystemPrompt: DEFAULT_ENRICHMENT_SYSTEM_PROMPT,
+    supervisorSystemPrompt: DEFAULT_SUPERVISOR_SYSTEM_PROMPT,
+    copywriterPrompt: DEFAULT_COPYWRITER_PROMPT,
+    icpClassificationPrompt: DEFAULT_ICP_CLASSIFICATION_PROMPT
+  },
   customGeminiApiKey: "",
   geminiKeyStatus: { status: "UNTESTED" },
   useGroundingTools: false, // Previne 403 PERMISSION_DENIED em chaves gratuitas do Google AI Studio
-  geminiModel: "gemini-3.6-flash"
+  geminiModel: "gemini-3.7-flash"
 };
 
+export const GROQ_MODELS = [
+  { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B Versatile (Recomendado - Mais Inteligente)", note: "128k contexto • Alta precisão e raciocínio B2B" },
+  { id: "groq/compound", label: "GroqCompound (450 T/s - Sistema Composto)", note: "131k contexto • 200 RPM Free • Ultra-rápido" },
+  { id: "groq/compound-mini", label: "GroqCompound Mini (450 T/s - Leve)", note: "131k contexto • 200 RPM Free • Baixa latência" },
+  { id: "llama-3.1-8b-instant", label: "Llama 3.1 8B Instant (Ultra-Rápido)", note: "128k contexto • Respostas instantâneas" },
+  { id: "deepseek-r1-distill-llama-70b", label: "DeepSeek R1 Distill Llama 70B (Raciocínio Avançado)", note: "128k contexto • Cadeia de pensamento para análise profunda" },
+  { id: "llama3-70b-8192", label: "Meta Llama 3 70B (8k)", note: "8k contexto • Alta capacidade analítica" },
+  { id: "llama3-8b-8192", label: "Meta Llama 3 8B (8k)", note: "8k contexto • Eficiente e leve" },
+  { id: "gemma2-9b-it", label: "Google Gemma 2 9B IT", note: "8k contexto • Modelo Google otimizado para instruções" },
+  { id: "qwen-2.5-32b", label: "Qwen 2.5 32B", note: "128k contexto • Excelente em código e estruturação de dados" },
+  { id: "qwen-qwq-32b", label: "Qwen QwQ 32B (Raciocínio)", note: "32k contexto • Raciocínio matemático e lógico" }
+];
+
 export const GEMINI_MODELS = [
-  { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash (Recomendado - Rápido & Atual)", note: "GA • melhor custo/desempenho" },
-  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", note: "GA • alta inteligência" },
-  { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", note: "GA • mais econômico" },
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Legado)", note: "Descontinuado em 16/10/2026" }
+  { id: "gemini-3.7-flash", label: "Gemini 3.7 Flash (Recomendado - Mais Rápido & Inteligente)", note: "GA • melhor para B2B e IA de Alta Performance" },
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", note: "GA • ultra estável" },
+  { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", note: "GA • ultra leve e econômico" },
+  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", note: "Raciocínio complexo" }
 ];
 
 export const COMPANY_EMAIL_TEMPLATE = `Olá {{name}},
@@ -496,7 +630,10 @@ export const DEFAULT_FILTERS = {
   status: 'all',
   businessStatus: 'open_only',
   icpTier: 'all',
-  intentPriority: 'all'
+  intentPriority: 'all',
+  originApi: 'all',
+  roiVerdict: 'all',
+  searchQuery: ''
 } as const;
 
 export const COUNTRY_CITIES: Record<string, string[]> = {
