@@ -1,7 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
-import { AiEngineConfig, BusinessProfile, GroqKeyStatus, GeminiKeyStatus, HighTicketNicheRecommendation } from "../types";
-import { DEFAULT_AI_ENGINE_CONFIG, DEFAULT_HIGH_TICKET_NICHES } from "../constants";
+import { AiEngineConfig, BusinessProfile, GroqKeyStatus, GeminiKeyStatus, RapidApiKeyStatus, HighTicketNicheRecommendation } from "../types";
+import { DEFAULT_AI_ENGINE_CONFIG, DEFAULT_HIGH_TICKET_NICHES, DEFAULT_RAPIDAPI_KEYS } from "../constants";
 import { getSavedCountry, getCurrencyConfig } from "./countryService";
+import { getRapidApiKeysPool, saveRapidApiKeysPool, getRapidApiRotationMode, saveRapidApiRotationMode, getActiveRapidApiKeyIndex, setActiveRapidApiKeyIndex } from "./letscrapeService";
+import { getCustomPrompts, saveCustomPrompts } from "./promptConfigService";
 
 const AI_CONFIG_KEY = "architect_ai_engine_config_v2";
 
@@ -11,17 +13,56 @@ const AI_CONFIG_KEY = "architect_ai_engine_config_v2";
 export function getAiConfig(): AiEngineConfig {
   try {
     const raw = localStorage.getItem(AI_CONFIG_KEY);
-    if (!raw) return DEFAULT_AI_ENGINE_CONFIG;
+    const customPrompts = getCustomPrompts();
+    const rapidKeys = getRapidApiKeysPool();
+    const rapidMode = getRapidApiRotationMode();
+    const rapidIdx = getActiveRapidApiKeyIndex();
+
+    if (!raw) {
+      return {
+        ...DEFAULT_AI_ENGINE_CONFIG,
+        rapidApiKeys: rapidKeys,
+        rapidApiRotationMode: rapidMode,
+        activeRapidApiKeyIndex: rapidIdx,
+        customPrompts
+      };
+    }
     const parsed = JSON.parse(raw);
+    
+    // Auto-migra modelos descontinuados pelo Groq para o modelo recomendado
+    let groqModel = parsed.groqModel || DEFAULT_AI_ENGINE_CONFIG.groqModel;
+    if (groqModel === 'llama-3.1-70b-versatile' || groqModel === 'mixtral-8x7b-32768' || groqModel.includes('mixtral')) {
+      groqModel = 'llama-3.3-70b-versatile';
+    }
+
+    let supervisorModel = parsed.supervisorModel || DEFAULT_AI_ENGINE_CONFIG.supervisorModel;
+    if (supervisorModel === 'llama-3.1-70b-versatile' || supervisorModel === 'mixtral-8x7b-32768' || supervisorModel.includes('mixtral')) {
+      supervisorModel = 'llama-3.3-70b-versatile';
+    }
+
+    // Auto-migra modelos de Gemini para versões suportadas no @google/genai
+    let geminiModel = parsed.geminiModel || DEFAULT_AI_ENGINE_CONFIG.geminiModel;
+    if (!geminiModel || geminiModel === 'gemini-3.6-flash' || geminiModel === 'gemini-3.5-flash' || geminiModel.includes('1.5') || geminiModel.includes('2.0') || geminiModel.includes('3.6')) {
+      geminiModel = 'gemini-3.7-flash';
+    }
+
     return {
       ...DEFAULT_AI_ENGINE_CONFIG,
       ...parsed,
+      groqModel,
       groqKeys: Array.isArray(parsed.groqKeys) ? [parsed.groqKeys[0] || "", parsed.groqKeys[1] || "", parsed.groqKeys[2] || ""] : ["", "", ""],
       keyStatuses: Array.isArray(parsed.keyStatuses) ? parsed.keyStatuses : DEFAULT_AI_ENGINE_CONFIG.keyStatuses,
+      rapidApiKeys: Array.isArray(parsed.rapidApiKeys) && parsed.rapidApiKeys.length >= 3 ? parsed.rapidApiKeys : rapidKeys,
+      rapidApiRotationMode: parsed.rapidApiRotationMode || rapidMode,
+      activeRapidApiKeyIndex: typeof parsed.activeRapidApiKeyIndex === 'number' ? parsed.activeRapidApiKeyIndex : rapidIdx,
+      rapidApiKeyStatuses: Array.isArray(parsed.rapidApiKeyStatuses) ? parsed.rapidApiKeyStatuses : DEFAULT_AI_ENGINE_CONFIG.rapidApiKeyStatuses,
+      supervisorAiEnabled: parsed.supervisorAiEnabled !== false,
+      supervisorModel,
+      customPrompts: parsed.customPrompts || customPrompts,
       customGeminiApiKey: parsed.customGeminiApiKey || "",
       geminiKeyStatus: parsed.geminiKeyStatus || { status: 'UNTESTED' },
       useGroundingTools: parsed.useGroundingTools || false,
-      geminiModel: parsed.geminiModel || DEFAULT_AI_ENGINE_CONFIG.geminiModel
+      geminiModel
     };
   } catch (e) {
     console.error("Failed to load AI config from storage", e);
@@ -46,12 +87,41 @@ export function saveAiConfig(config: AiEngineConfig): void {
       };
     });
 
+    const updatedRapidStatuses: RapidApiKeyStatus[] = (config.rapidApiKeys || DEFAULT_RAPIDAPI_KEYS).map((k, idx) => {
+      const prev = config.rapidApiKeyStatuses?.[idx];
+      const trimmed = (k || '').trim();
+      const preview = trimmed.length > 8 ? `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}` : trimmed ? 'Chave curta' : 'Não configurada';
+      return {
+        index: idx,
+        keyPreview: preview,
+        status: trimmed ? (prev?.status || 'VALID') : 'UNTESTED',
+        lastUsed: prev?.lastUsed,
+        errorMessage: prev?.errorMessage,
+        latencyMs: prev?.latencyMs
+      };
+    });
+
     const toSave: AiEngineConfig = {
       ...config,
-      keyStatuses: updatedStatuses
+      keyStatuses: updatedStatuses,
+      rapidApiKeyStatuses: updatedRapidStatuses
     };
 
     localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(toSave));
+
+    // Sync sub-stores
+    if (config.rapidApiKeys) {
+      saveRapidApiKeysPool(config.rapidApiKeys);
+    }
+    if (config.rapidApiRotationMode) {
+      saveRapidApiRotationMode(config.rapidApiRotationMode);
+    }
+    if (typeof config.activeRapidApiKeyIndex === 'number') {
+      setActiveRapidApiKeyIndex(config.activeRapidApiKeyIndex);
+    }
+    if (config.customPrompts) {
+      saveCustomPrompts(config.customPrompts);
+    }
   } catch (e) {
     console.error("Failed to save AI config", e);
   }
@@ -76,7 +146,7 @@ export async function testGeminiApiKey(key: string, model?: string): Promise<{ s
   }
 
   const start = Date.now();
-  const activeModel = model || getAiConfig().geminiModel || 'gemini-3.6-flash';
+  const activeModel = model || getAiConfig().geminiModel || 'gemini-3.7-flash';
   try {
     const testAi = new GoogleGenAI({ apiKey: key.trim() });
     const res = await Promise.race([
@@ -109,98 +179,231 @@ export async function testGeminiApiKey(key: string, model?: string): Promise<{ s
   }
 }
 
+export const GROQ_CANDIDATE_MODELS = [
+  "llama-3.3-70b-versatile",
+  "groq/compound",
+  "groq/compound-mini",
+  "llama-3.1-8b-instant",
+  "deepseek-r1-distill-llama-70b",
+  "llama3-70b-8192",
+  "llama3-8b-8192",
+  "gemma2-9b-it",
+  "qwen-2.5-32b",
+  "qwen-qwq-32b"
+];
+
 /**
- * Test a single Groq API Key (100% Free from console.groq.com)
+ * Consulta a API do Groq ao vivo para listar todos os modelos ativos disponíveis na conta
  */
-export async function testGroqKey(key: string, model: string = "llama-3.3-70b-versatile"): Promise<{ success: boolean; latencyMs: number; error?: string; modelUsed: string }> {
-  if (!key || !key.trim()) {
-    return { success: false, latencyMs: 0, error: "Chave do Groq vazia. Obtenha uma chave gratuita em console.groq.com/keys", modelUsed: model };
-  }
-
-  const start = Date.now();
+export async function fetchGroqAvailableModels(key: string): Promise<Array<{ id: string; label: string; note?: string }>> {
+  if (!key || !key.trim()) return [];
   try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
+    const res = await fetch("https://api.groq.com/openai/v1/models", {
+      method: "GET",
       headers: {
-        "Content-Type": "application/json",
         "Authorization": `Bearer ${key.trim()}`
-      },
-      body: JSON.stringify({
-        model: model || "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: "You are a fast API test responder." },
-          { role: "user", content: "Responda apenas 'OK'." }
-        ],
-        max_tokens: 10,
-        temperature: 0.1
-      })
+      }
     });
-
-    const latencyMs = Date.now() - start;
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      const msg = errData.error?.message || `HTTP ${res.status}: ${res.statusText}`;
-      return { success: false, latencyMs, error: msg, modelUsed: model };
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (Array.isArray(data.data)) {
+      return data.data
+        .filter((m: any) => m.active !== false && !m.id.includes('whisper') && !m.id.includes('tts') && !m.id.includes('guard'))
+        .map((m: any) => ({
+          id: m.id,
+          label: m.id === "llama-3.3-70b-versatile" 
+            ? "Llama 3.3 70B Versatile (Recomendado)"
+            : m.id === "groq/compound" 
+            ? "GroqCompound (450 T/s - Sistema Composto)" 
+            : m.id === "groq/compound-mini" 
+            ? "GroqCompound Mini (450 T/s - Leve)"
+            : m.id === "deepseek-r1-distill-llama-70b"
+            ? "DeepSeek R1 Distill 70B (Raciocínio)"
+            : m.id,
+          note: m.owned_by ? `Proprietário: ${m.owned_by} • Contexto: ${m.context_window ? Math.round(m.context_window / 1024) + 'k' : '128k'}` : 'Ativo e Gratuito no Groq'
+        }))
+        .sort((a: any, b: any) => {
+          if (a.id.includes('3.3-70b')) return -1;
+          if (b.id.includes('3.3-70b')) return 1;
+          if (a.id.includes('compound')) return -1;
+          if (b.id.includes('compound')) return 1;
+          return a.id.localeCompare(b.id);
+        });
     }
-
-    return { success: true, latencyMs, modelUsed: model };
-  } catch (e: any) {
-    return { success: false, latencyMs: Date.now() - start, error: e.message || "Erro de conexão com a API do Groq.", modelUsed: model };
+  } catch (e) {
+    console.warn("Não foi possível listar modelos dinâmicos do Groq:", e);
   }
+  return [];
 }
 
 /**
- * Executes chat completion on Groq with specific key
+ * Test a single Groq API Key (100% Free from console.groq.com)
  */
-async function callGroqDirect(key: string, model: string, prompt: string, systemPrompt?: string, temperature = 0.35, jsonMode = true) {
+export async function testGroqKey(key: string, preferredModel: string = "llama-3.3-70b-versatile"): Promise<{ success: boolean; latencyMs: number; error?: string; modelUsed: string }> {
+  if (!key || !key.trim()) {
+    return { success: false, latencyMs: 0, error: "Chave do Groq vazia. Obtenha uma chave gratuita em console.groq.com/keys", modelUsed: preferredModel };
+  }
+
+  const modelsToTry = [
+    preferredModel,
+    ...GROQ_CANDIDATE_MODELS.filter(m => m !== preferredModel)
+  ];
+
+  let lastError = "";
+  const start = Date.now();
+
+  for (const model of modelsToTry) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${key.trim()}`
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: "You are a fast API test responder." },
+            { role: "user", content: "Responda apenas 'OK'." }
+          ],
+          max_tokens: 10,
+          temperature: 0.1
+        })
+      });
+
+      const latencyMs = Date.now() - start;
+      if (res.ok) {
+        // Se o modelo original não era suportado mas outro funcionou, salva no config
+        if (model !== preferredModel) {
+          const cfg = getAiConfig();
+          cfg.groqModel = model;
+          saveAiConfig(cfg);
+        }
+        return { success: true, latencyMs, modelUsed: model };
+      }
+
+      const errData = await res.json().catch(() => ({}));
+      const msg = errData.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+      lastError = msg;
+
+      // Se o erro não for de modelo inexistente (ex: chave inválida ou rate limit), interrompe
+      if (!msg.toLowerCase().includes("does not exist") && !msg.toLowerCase().includes("do not have access") && !msg.toLowerCase().includes("model_not_found")) {
+        return { success: false, latencyMs, error: msg, modelUsed: model };
+      }
+    } catch (e: any) {
+      lastError = e.message || "Erro de conexão com a API do Groq.";
+    }
+  }
+
+  return { 
+    success: false, 
+    latencyMs: Date.now() - start, 
+    error: lastError || "Nenhum modelo Groq disponível para esta chave.", 
+    modelUsed: preferredModel 
+  };
+}
+
+/**
+ * Executes chat completion on Groq with specific key and automatic model fallback
+ */
+async function callGroqDirect(key: string, preferredModel: string, prompt: string, systemPrompt?: string, temperature = 0.35, jsonMode = true) {
   const messages: any[] = [];
   if (systemPrompt) {
     messages.push({ role: "system", content: systemPrompt });
   }
   messages.push({ role: "user", content: prompt });
 
-  const body: any = {
-    model: model || "llama-3.3-70b-versatile",
-    messages: messages,
-    temperature: temperature,
-    max_tokens: 4096
-  };
+  const modelsToTry = [
+    preferredModel || "llama-3.3-70b-versatile",
+    ...GROQ_CANDIDATE_MODELS.filter(m => m !== preferredModel)
+  ];
 
-  if (jsonMode) {
-    body.response_format = { type: "json_object" };
+  let lastErr: any = null;
+
+  for (const model of modelsToTry) {
+    const body: any = {
+      model: model,
+      messages: messages,
+      temperature: temperature,
+      max_tokens: 4096
+    };
+
+    if (jsonMode) {
+      body.response_format = { type: "json_object" };
+    }
+
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${key.trim()}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content || "";
+      }
+
+      const errorBody = await res.json().catch(() => ({}));
+      const errMsg = errorBody.error?.message || `Groq API error HTTP ${res.status}`;
+      const err = new Error(errMsg);
+      (err as any).status = res.status;
+      lastErr = err;
+
+      // Se não for erro de modelo inexistente, não tenta outros modelos
+      if (!errMsg.toLowerCase().includes("does not exist") && !errMsg.toLowerCase().includes("do not have access") && !errMsg.toLowerCase().includes("model_not_found")) {
+        throw err;
+      }
+    } catch (e: any) {
+      lastErr = e;
+      if (e.status && e.status !== 404 && e.status !== 400) {
+        throw e;
+      }
+    }
   }
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${key.trim()}`
-    },
-    body: JSON.stringify(body)
-  });
-
-  if (!res.ok) {
-    const errorBody = await res.json().catch(() => ({}));
-    const err = new Error(errorBody.error?.message || `Groq API error HTTP ${res.status}`);
-    (err as any).status = res.status;
-    throw err;
-  }
-
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || "";
+  throw lastErr || new Error("Falha em todos os modelos Groq disponíveis.");
 }
 
 /**
  * Universal Multi-Engine Execution with 3-Key Groq Rotation & Gemini Fallback
  */
-export async function executeAiCompletion(options: {
-  prompt: string;
-  systemPrompt?: string;
-  temperature?: number;
-  tools?: any[];
-  jsonMode?: boolean;
-  signal?: AbortSignal;
-}): Promise<{ text: string; engineUsed: string }> {
+export async function executeAiCompletion(
+  promptOrOptions: string | {
+    prompt: string;
+    systemPrompt?: string;
+    temperature?: number;
+    tools?: any[];
+    jsonMode?: boolean;
+    signal?: AbortSignal;
+  },
+  systemPrompt?: string,
+  temperature?: number,
+  signal?: AbortSignal
+): Promise<{ text: string; engineUsed: string }> {
+  let options: {
+    prompt: string;
+    systemPrompt?: string;
+    temperature?: number;
+    tools?: any[];
+    jsonMode?: boolean;
+    signal?: AbortSignal;
+  };
+
+  if (typeof promptOrOptions === "string") {
+    options = {
+      prompt: promptOrOptions,
+      systemPrompt,
+      temperature,
+      signal
+    };
+  } else {
+    options = promptOrOptions;
+  }
+
   const config = getAiConfig();
   const validGroqKeys = config.groqKeys
     .map((k, index) => ({ key: k.trim(), index }))
@@ -278,7 +481,7 @@ export async function executeAiCompletion(options: {
 
     const geminiAi = getGeminiClient();
     const fullPrompt = options.systemPrompt ? `${options.systemPrompt}\n\n${options.prompt}` : options.prompt;
-    const activeModel = config.geminiModel || 'gemini-3.6-flash';
+    const activeModel = (config.geminiModel && config.geminiModel !== 'gemini-3.6-flash' && config.geminiModel !== 'gemini-3.5-flash') ? config.geminiModel : 'gemini-3.7-flash';
     
     // CRITICAL ANTI-403 FIX: Only pass tools if explicitly enabled and requested
     // (Free Google AI Studio keys throw 403 Permission Denied if googleMaps/googleSearch tools are attached)

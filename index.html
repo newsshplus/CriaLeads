@@ -1,54 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CriaLeads - EU Lead Gen</title>
+    <title>Architect-Prospector AI</title>
+    <meta name="description" content="Sistema autônomo de prospecção dual (B2B Empresas & Imóveis de Particulares FSBO) com Idealista, OLX, Fotocasa, ZAP, Apollo.io, Google Maps, Lotes de pesquisa, ICP Score, scripts SDR e quebra de objeções." />
+    <meta property="og:title" content="Architect-Prospector AI" />
+    <meta property="og:description" content="Sistema autônomo de prospecção dual (B2B Empresas & Imóveis de Particulares FSBO) com Idealista, OLX, Fotocasa, ZAP, Apollo.io, Google Maps, Lotes de pesquisa, ICP Score, scripts SDR e quebra de objeções." />
+    <script>
+      // Polyfill / Fix for "Cannot set property fetch of #<Window> which has only a getter"
+      (function() {
+        try {
+          var originalFetch = window.fetch ? window.fetch.bind(window) : undefined;
+          var customFetch = originalFetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return customFetch || originalFetch;
+            },
+            set: function(fn) {
+              customFetch = fn;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          // If already defined or cannot redefine, continue safely
+        }
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f3f4f6;
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+      
+      html, body {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f8fafc;
+        color: #0f172a;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        letter-spacing: -0.011em;
+      }
+
+      /* Melhoria de legibilidade de rótulos e elementos compactos */
+      button, input, select, textarea {
+        font-family: inherit;
+        letter-spacing: inherit;
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "recharts": "https://esm.sh/recharts@^3.7.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3"
-  }
-}
-</script>
-<script>
-  // Diagnostic overlay: surfaces ANY runtime/module error instead of a white screen
-  (function () {
-    function show(msg) {
-      try {
-        var el = document.getElementById('__err-overlay');
-        if (!el) {
-          el = document.createElement('div');
-          el.id = '__err-overlay';
-          el.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:999999;background:#7f1d1d;color:#fff;font:12px/1.5 monospace;padding:12px 16px;white-space:pre-wrap;max-height:45vh;overflow:auto;';
-          document.body && document.body.appendChild(el);
+    <script>
+      // Diagnostic overlay: surfaces ANY critical runtime/module error instead of a white screen
+      (function () {
+        function show(msg) {
+          try {
+            // Ignore benign fetch getter error or harmless extension errors
+            if (msg.includes('Cannot set property fetch of') || msg.includes('ResizeObserver loop') || msg.includes('failed to connect to websocket')) {
+              return;
+            }
+            var el = document.getElementById('__err-overlay');
+            if (!el) {
+              el = document.createElement('div');
+              el.id = '__err-overlay';
+              el.style.cssText = 'position:fixed;left:16px;right:16px;bottom:16px;z-index:999999;background:#881337;border:1px solid #f43f5e;border-radius:12px;color:#fff;font:12px/1.5 monospace;padding:12px 16px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;max-height:40vh;overflow:auto;';
+              
+              var content = document.createElement('div');
+              content.id = '__err-overlay-text';
+              content.style.cssText = 'flex:1;white-space:pre-wrap;';
+              
+              var closeBtn = document.createElement('button');
+              closeBtn.textContent = '✕ Fechar';
+              closeBtn.style.cssText = 'background:rgba(255,255,255,0.2);border:none;color:#fff;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;shrink:0;';
+              closeBtn.onclick = function() { el.style.display = 'none'; };
+              
+              el.appendChild(content);
+              el.appendChild(closeBtn);
+              document.body && document.body.appendChild(el);
+            }
+            var textEl = document.getElementById('__err-overlay-text') || el;
+            textEl.textContent = '[Aviso do app] ' + msg;
+            el.style.display = 'flex';
+          } catch (e) {}
         }
-        el.textContent = '[Erro do app] ' + msg;
-      } catch (e) {}
-    }
-    window.addEventListener('error', function (e) {
-      show((e.message || (e.error && e.error.stack) || 'Erro desconhecido').toString());
-    });
-    window.addEventListener('unhandledrejection', function (e) {
-      var r = e.reason;
-      show('Promise rejeitada: ' + (r && (r.message || r.stack || r)) + '');
-    });
-  })();
-</script>
-</head>
+        window.addEventListener('error', function (e) {
+          show((e.message || (e.error && e.error.stack) || 'Erro desconhecido').toString());
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason;
+          show('Promise rejeitada: ' + (r && (r.message || r.stack || r)) + '');
+        });
+      })();
+    </script>
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

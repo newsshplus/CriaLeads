@@ -300,7 +300,7 @@ const OmnichannelModal: React.FC<OmnichannelModalProps> = ({
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 mt-5 border-b border-slate-800 pb-1 overflow-x-auto">
+          <div className="flex items-center gap-2 mt-5 border-b border-slate-800 pb-2.5 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
             
             {/* TAB: CRIAHUB CRM & EVOLUTION API */}
             <button

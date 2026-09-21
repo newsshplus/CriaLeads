@@ -40,6 +40,17 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
 
   // Speech Recognition Ref
   const recognitionRef = useRef<any>(null);
+  const analysisContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Mic & Screen Permission State (prospecção por chamada, áudio ou vídeo)
+  const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+  const [screenPermission, setScreenPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
+  const [permissionBusy, setPermissionBusy] = useState<'none' | 'mic' | 'screen'>('none');
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+
+  // País selecionado -> idioma de voz do copiloto (pt-PT, pt-BR, en-US, es-ES...)
+  const speechLang = getCurrencyConfig(getSavedCountry()).speechLang;
 
   // Mic & Screen Permission State (prospecção por chamada, áudio ou vídeo)
   const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
@@ -235,6 +246,11 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
       );
 
       setCurrentAnalysis(analysis);
+
+      // Auto scroll suave até as recomendações
+      setTimeout(() => {
+        analysisContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
 
       if (addToHistory) {
         const newTurn: LiveConversationTurn = {
@@ -549,7 +565,29 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
 
           {/* AI Realtime Analysis & Decision Engine Panel */}
           {currentAnalysis && (
-            <div className="space-y-6 animate-fadeIn">
+            <div ref={analysisContainerRef} className="space-y-6 animate-fadeIn scroll-mt-6">
+              
+              {/* Resposta Imediata Banner */}
+              <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-xl p-4 shadow-md flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/30 border border-indigo-400/40 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-white uppercase tracking-wide">
+                      💡 Como Responder ao Cliente Agora
+                    </h3>
+                    <p className="text-xs text-indigo-200">
+                      Objeção detectada: <strong>{currentAnalysis.detectedIntent}</strong> • Gatilho: <strong>{currentAnalysis.keyPsychologicalTrigger}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <span className="hidden sm:inline-flex px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full text-xs font-bold items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
+                  Script de Alta Conversão Pronto
+                </span>
+              </div>
               
               {/* Gauges & Telemetry Bar */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -811,4 +849,3 @@ export const AiLiveCopilotModal: React.FC<AiLiveCopilotModalProps> = ({
 };
 
 export default AiLiveCopilotModal;
-

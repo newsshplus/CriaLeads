@@ -1,4 +1,5 @@
 import { Lead, DeliverabilityGuardian } from '../types';
+import { getSavedCountry } from "./countryService";
 
 /**
  * DELIVERABILITY & ANTI-BAN GUARDIAN ENGINE
@@ -161,58 +162,101 @@ export function convertToPlainTextEmail(
 
 /**
  * Gera as 3 variações semânticas de mensagem de WhatsApp com humanização temporal e anti-ban
+ * Segue o padrão Master SDR: Elogio de Autoridade -> Contexto Local -> Alavancagem Sem Custos Altos -> CTA Suave
  */
 export function generateSpinningWhatsApp(
   leadName: string,
   companyName: string,
   pain: string,
   flaw1?: string,
-  segment?: string
+  segment?: string,
+  city?: string,
+  country?: string
 ): {
   variationA: string;
   variationB: string;
   variationC: string;
 } {
-  const firstName = leadName && leadName !== 'Responsável Comercial' && leadName !== 'Diretoria'
-    ? leadName.split(' ')[0]
-    : 'olá';
-  
-  const greeting = firstName !== 'olá' ? `Olá ${firstName}, tudo bem?` : `Olá, tudo bem com a equipe da ${companyName}?`;
-  const primaryFlaw = flaw1 || pain || 'triagem de atendimento fora do horário comercial';
-  const cleanFlaw = primaryFlaw.replace(/^[0-9]\.\s*/, '').toLowerCase();
+  const targetCountry = country || getSavedCountry();
+  const isPt = targetCountry.toLowerCase().includes('portugal') || targetCountry.toLowerCase().includes('pt');
 
-  // VARIAÇÃO A: Curiosidade & Abordagem Suave (Human-Like com pausas)
+  const firstName = leadName && leadName !== 'Responsável Comercial' && leadName !== 'Diretoria' && leadName !== 'CEO'
+    ? leadName.split(' ')[0]
+    : '';
+  
+  const greeting = isPt 
+    ? (firstName ? `Viva ${firstName}, tudo bem?` : `Viva, tudo bem com a equipa da ${companyName}?`)
+    : (firstName ? `Fala ${firstName}, tudo bem?` : `Olá, tudo bem com a equipe da ${companyName}?`);
+  
+  const location = city ? `em ${city}` : 'na sua região';
+  const sector = segment || 'no seu segmento';
+
+  // VARIAÇÃO A: Reconhecimento de Autoridade & Expansão Local (Padrão Master SDR)
   const variationA = `${greeting}
 
-Acompanho o trabalho da ${companyName} e estava analisando a presença digital de vocês.
+Acompanho com grande admiração a autoridade e o trabalho de alto nível que a ${companyName} construiu ${location}.
 
-Percebi um detalhe rápido sobre ${cleanFlaw}, que costuma fazer empresas do setor perderem contatos valiosos sem perceber.
+Identificamos uma oportunidade excelente para unir a vossa solidez com a nossa engenharia de captação da CriaHub, acelerando os clientes de maior ticket da cidade sem custos elevados.
 
-Gravei um vídeo rápido de 30 segundos mostrando o que identifiquei. Posso te enviar por aqui?`;
+Gravei um áudio de 40 segundos com essa análise prática. Posso te enviar por aqui?`;
 
-  // VARIAÇÃO B: Foco em Eficiência & ROI Direto (Áudio/Mensagem curta)
-  const variationB = `Fala ${firstName !== 'olá' ? firstName : 'pessoal'}, bom dia!
+  // VARIAÇÃO B: Foco em Eficiência & Parceria Estratégica
+  const variationB = `${greeting}
 
-Passando rápido porque vi a operação da ${companyName} rodando e notei um gargalo em ${cleanFlaw}.
+Passando rápido porque admiramos a presença da ${companyName} no setor de ${sector}.
 
-Implementamos recentemente uma automação para um negócio semelhante que aumentou o volume de reuniões em mais de 35%.
+Estruturamos recentemente um mapa de expansão para consolidar a sua empresa como a maior referência da região, otimizando o fluxo de novos contratos de forma muito assertiva.
 
-Vale batermos 5 minutos rápidos essa semana para eu te mostrar como funciona na prática?`;
+Vale batermos 5 minutos rápidos nesta semana para eu te mostrar como pretendemos fazer isso?`;
 
-  // VARIAÇÃO C: Diagnóstico Técnico & Pergunta Especialista
-  const variationC = `${firstName !== 'olá' ? firstName : 'Olá'}, tudo em paz?
+  // VARIAÇÃO C: Diagnóstico Estratégico & Pergunta Executiva
+  const variationC = isPt
+    ? `Viva ${firstName || 'caro colega'}, tudo bem?
 
-Estava revisando os fluxos de conversão na região e notei que a ${companyName} possui uma oportunidade imediata de melhoria em ${cleanFlaw}.
+Estive a analisar o mercado de ${sector} ${location} e a ${companyName} destaca-se como a operação com melhor reputação.
 
-Preparamos um diagnóstico objetivo sobre como sanar esse ponto sem sobrecarregar sua equipe.
+Preparamos uma estratégia de alavancagem para transformar essa autoridade em domínio absoluto de novos clientes de alto valor, sem qualquer custo pesado.
 
-Faria sentido conversarmos na quinta-feira por 10 minutos?`;
+Faria sentido falarmos 10 minutos na quinta-feira?`
+    : `Olá ${firstName || 'amigo'}, tudo bem?
+
+Estava analisando o mercado de ${sector} ${location} e a ${companyName} se destaca como a operação de maior autoridade.
+
+Preparamos um estudo para transformar essa credibilidade em novos contratos de alto valor no piloto automático, sem custos elevados.
+
+Faria sentido batermos 10 minutos nesta quinta-feira?`;
 
   return {
     variationA: sanitizeSpamWords(variationA).cleanedText,
     variationB: sanitizeSpamWords(variationB).cleanedText,
     variationC: sanitizeSpamWords(variationC).cleanedText
   };
+}
+
+/**
+ * Obtém a descrição da janela de envio e fuso horário baseado no país do lead
+ */
+function getCountrySendingWindow(countryName?: string): string {
+  const c = (countryName || getSavedCountry() || '').toLowerCase();
+  if (c.includes('portugal') || c.includes('lisboa') || c.includes('porto')) {
+    return '09:30 - 11:45 ou 14:15 - 16:30 (Horário de Lisboa / WET)';
+  }
+  if (c.includes('espanha') || c.includes('spain') || c.includes('madrid') || c.includes('barcelona')) {
+    return '09:30 - 11:45 ou 14:15 - 16:30 (Horário de Madrid / CET)';
+  }
+  if (c.includes('reino unido') || c.includes('uk') || c.includes('london') || c.includes('londres')) {
+    return '09:30 - 11:45 ou 14:15 - 16:30 (Horário de Londres / GMT)';
+  }
+  if (c.includes('estados unidos') || c.includes('usa') || c.includes('us')) {
+    return '09:30 - 11:45 ou 14:15 - 16:30 (Horário Comercial Local / EST-PST)';
+  }
+  if (c.includes('frança') || c.includes('alemanha') || c.includes('itália') || c.includes('países baixos')) {
+    return '09:30 - 11:45 ou 14:15 - 16:30 (Horário Comercial Europeu / CET)';
+  }
+  if (c.includes('chile') || c.includes('colômbia') || c.includes('méxico')) {
+    return '09:30 - 11:45 ou 14:15 - 16:30 (Horário Comercial Local)';
+  }
+  return '09:30 - 11:45 ou 14:15 - 16:30 (Horário de Brasília / BRT)';
 }
 
 /**
@@ -225,13 +269,17 @@ export function buildDeliverabilityGuardian(lead: Lead): DeliverabilityGuardian 
   const flaw1 = lead.keyFlaws?.[0] || lead.bantPlus?.need?.operationalFlaws?.[0];
   const emailToUse = lead.decisionMaker?.directEmail || lead.email;
 
+  const targetCountry = lead.country || getSavedCountry();
+
   // 1. WhatsApp Spinning & Humanização
   const spinning = generateSpinningWhatsApp(
     decisionMakerName,
     companyName,
     pain,
     flaw1,
-    lead.category
+    lead.category,
+    lead.city,
+    targetCountry
   );
 
   const rawWa = lead.outreach?.whatsapp?.option1Curiosity || spinning.variationA;
@@ -252,7 +300,7 @@ export function buildDeliverabilityGuardian(lead: Lead): DeliverabilityGuardian 
       temporalHumanization: {
         typingDelaySeconds: Math.floor(Math.random() * 10) + 18, // 18 a 28 segundos
         presenceState: 'composing',
-        suggestedSendingWindow: '09:30 - 11:45 ou 14:15 - 16:30 (Horário de Brasília)',
+        suggestedSendingWindow: getCountrySendingWindow(targetCountry),
         pacingRecommendation: 'Intervalo randômico de 45 a 120 segundos entre envios em lote.'
       }
     },

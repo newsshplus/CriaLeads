@@ -1,0 +1,37 @@
+=== COLAR NO AI STUDIO (CriaLeads) ===
+A pasta espelha exatamente a estrutura do projeto. Nao ha numeros nem pastas
+extras: cada arquivo aqui corresponde a UM arquivo ja existente no AI Studio.
+Abra o arquivo nesta pasta -> Ctrl+A -> Ctrl+C -> abra o arquivo de MESMO
+caminho no AI Studio -> Ctrl+A -> Ctrl+V -> salve.
+
+UNICO arquivo NOVO (so ele precisa ser criado, os demais so sobrescrever):
+  - services/letscrapeService.ts  (330 linhas)
+
+Arquivos para SOBRESCREVER (ja existem no AI Studio):
+  - App.tsx  (1173 linhas)
+  - components/AiLiveCopilotModal.tsx  (814 linhas)
+  - components/BusinessProfileModal.tsx  (776 linhas)
+  - components/CitySelector.tsx  (101 linhas)
+  - components/CountrySelectModal.tsx  (129 linhas)
+  - components/EmailModal.tsx  (191 linhas)
+  - components/JsonViewerModal.tsx  (108 linhas)
+  - components/LeadCard.tsx  (399 linhas)
+  - components/OmnichannelModal.tsx  (2152 linhas)
+  - components/PipelineTable.tsx  (388 linhas)
+  - components/ScrapingPipelineBanner.tsx  (104 linhas)
+  - components/WebhookAutomationModal.tsx  (379 linhas)
+  - constants.ts  (521 linhas)
+  - index.html  (55 linhas)
+  - index.tsx  (54 linhas)
+  - metadata.json  (7 linhas)
+  - services/aiProviderService.ts  (506 linhas)
+  - services/cadenceService.ts  (212 linhas)
+  - services/countryService.ts  (99 linhas)
+  - services/deliverabilityService.ts  (317 linhas)
+  - services/geminiService.ts  (726 linhas)
+  - services/liveCopilotService.ts  (243 linhas)
+  - services/objectionCrusherService.ts  (153 linhas)
+  - services/pitroCrmService.ts  (406 linhas)
+  - services/storageService.ts  (150 linhas)
+  - services/syntheticProspector.ts  (389 linhas)
+  - types.ts  (495 linhas)

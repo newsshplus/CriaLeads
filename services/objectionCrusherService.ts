@@ -1,35 +1,28 @@
 import { Lead, BusinessProfile, ObjectionCrusherMatrix, ObjectionCrusherItem } from '../types';
+import { getSavedCountry } from './countryService';
 
 /**
- * ELITE SALES OBJECTION CRUSHER & LIVE COLD CALL COPILOT ENGINE
+ * MASTER SDR SALES OBJECTION CRUSHER & LIVE CALL MATRIX (+10 Anos de Experiência)
  * 
- * Previsão analítica e geração de scripts de contorno em tempo real (máximo 3 frases)
- * com psicologia de vendas: Empatia -> Ancoragem em Brecha Real -> Quebra de Padrão & Fechamento.
+ * Psicologia de vendas de alto nível:
+ * Validação de Autoridade -> Elogio à Excelência da Empresa -> Ancoragem em Expansão Local -> Fechamento Suave sem Atrito.
  */
-
 export function buildObjectionCrusherMatrix(
   lead: Lead,
   myBusiness?: BusinessProfile | null
 ): ObjectionCrusherMatrix {
+  const targetCountry = lead.country || getSavedCountry();
+  const isPt = targetCountry.toLowerCase().includes('portugal') || targetCountry.toLowerCase().includes('pt');
+
   const companyName = lead.name || 'sua empresa';
-  const decisionMakerName = lead.bantPlus?.authority?.keyDecisionMaker || lead.decisionMaker?.name || 'Responsável';
-  const firstName = decisionMakerName && !['Responsável', 'Diretoria', 'Responsável Comercial'].includes(decisionMakerName)
+  const decisionMakerName = lead.bantPlus?.authority?.keyDecisionMaker || lead.decisionMaker?.name || 'Diretoria';
+  const firstName = decisionMakerName && !['Responsável', 'Diretoria', 'Responsável Comercial', 'CEO'].includes(decisionMakerName)
     ? decisionMakerName.split(' ')[0]
-    : 'gestor';
+    : (isPt ? 'colega' : 'gestor');
   
   const niche = lead.category || 'empresas do seu segmento';
-  
-  // Brecha técnica concreta detectada
-  const technicalGapAnchor = lead.keyFlaws?.[0] 
-    || lead.bantPlus?.need?.operationalFlaws?.[0] 
-    || lead.techStack?.vulnerabilitiesAndGaps?.[0]
-    || lead.identifiedPain 
-    || 'tempo de resposta elevado no primeiro contato e vazamento de leads no funil';
-  
-  const cleanTechnicalGap = technicalGapAnchor.replace(/^[0-9]\.\s*/, '').trim();
-
-  // Dor mapeada principal
-  const mappedPain = lead.identifiedPain || 'perda de oportunidades comerciais na triagem de leads';
+  const city = lead.city || 'sua cidade';
+  const district = lead.address ? lead.address.split(',')[0] : (lead.city || 'sua região');
   
   // Contexto financeiro
   const budgetContext = lead.bantPlus?.budget?.estimatedRevenue 
@@ -38,63 +31,88 @@ export function buildObjectionCrusherMatrix(
 
   // Objeção 1: "Já tenho uma agência/fornecedor que faz isso."
   const alreadyHaveProvider: ObjectionCrusherItem = {
-    objection: 'Já tenho uma agência / fornecedor que faz isso.',
-    psychologicalAngle: 'Ancoragem em Brecha Técnica & Não-Conflito com Fornecedor Atual',
-    keyKeywords: ['agência', 'fornecedor', 'já temos', 'equipe interna', 'parceiro'],
-    sdrGuidance: 'Valide a existência do fornecedor e posicione-se como um auditor cirúrgico, não como concorrente.',
-    responseScript: `Entendo perfeitamente, ${firstName}, e é ótimo saber que vocês já têm parceiros cuidando dessa área. O motivo do meu contato não é substituir quem já te atende, mas sim porque identifiquei uma brecha técnica em ${cleanTechnicalGap} na ${companyName} que pode estar vazando contatos qualificados. Vale batermos 10 minutos rápidos para eu te mostrar esse diagnóstico técnico e você mesmo repassar para sua equipe ajustar?`
+    objection: isPt ? 'Já temos uma agência / equipa que cuida disso.' : 'Já tenho uma agência / fornecedor que faz isso.',
+    psychologicalAngle: 'Validação e Elogio ao Parceiro Atual & Proposta de Somar com Mapa Regional',
+    keyKeywords: ['agência', 'fornecedor', 'já temos', 'equipe interna', 'parceiro', 'equipa'],
+    sdrGuidance: 'Parabenize a empresa por já investir e posicione-se como um consultor sênior trazendo um mapa de oportunidades locais que a própria equipe deles pode executar.',
+    responseScript: isPt
+      ? `Excelente saber que já têm esse apoio, ${firstName}! Isso demonstra a visão estratégica da ${companyName}. O motivo do meu contato não é concorrer com ninguém que já vos atende, mas sim entregar uma análise de demanda de alto ticket no distrito de ${city} que a sua própria equipa pode colocar em prática para consolidar vocês no topo absoluto. Vale batermos 10 minutos amanhã para eu vos apresentar esses dados?`
+      : `Excelente saber que vocês já contam com parceiros, ${firstName}! Isso reflete o profissionalismo da ${companyName}. Meu objetivo não é de forma alguma substituir quem já te atende, mas sim somar com uma análise de expansão regional de ${city} que sua própria equipe interna pode usar para acelerar novos clientes de alto valor. Vale batermos 10 minutos rápidos amanhã para você ver esses dados?`
   };
 
   // Objeção 2: "Me envia uma proposta por e-mail."
   const sendByEmail: ObjectionCrusherItem = {
-    objection: 'Me envia uma proposta por e-mail.',
-    psychologicalAngle: 'Quebra de Padrão do Descarte & Travamento de Agenda ao Vivo',
-    keyKeywords: ['por email', 'manda apresentação', 'envia proposta', 'manda no zap', 'material'],
-    sdrGuidance: 'Não envie PDF genérico. Desarme o pedido educadamente e proponha uma análise visual de 10 minutos.',
-    responseScript: `Com certeza posso te enviar, ${firstName}, mas como nosso trabalho não é uma tabela de preços genérica e sim um diagnóstico sob medida para ${cleanTechnicalGap}, mandar um PDF agora só vai lotar sua caixa de entrada sem resolver o problema. Prefiro compartilhar a tela com você por apenas 10 minutos para te mostrar exatamente onde estão os gargalos operacionais da ${companyName}. Fica melhor para você nesta quinta às 10h15 ou às 14h30?`
+    objection: isPt ? 'Envie-me uma proposta / apresentação por e-mail.' : 'Me envia uma proposta por e-mail / WhatsApp.',
+    psychologicalAngle: 'Personalização do Projeto Local & Ineficácia de Documentos Genéricos',
+    keyKeywords: ['por email', 'manda apresentação', 'envia proposta', 'manda no zap', 'material', 'pdf'],
+    sdrGuidance: 'Não envie PDFs estáticos que serão ignorados. Demonstre respeito explicando que a análise da cidade foi feita sob medida para eles.',
+    responseScript: isPt
+      ? `Com todo o gosto envio o material, ${firstName}, mas como desenhámos um estudo específico para a liderança da ${companyName} no concelho de ${city}, mandar um PDF genérico não faria justiça ao potencial da vossa empresa. Prefiro partilhar a tela convosco por apenas 10 minutos para verem o mapa de oportunidades ao vivo. Fica-lhe melhor amanhã às 10h15 ou às 14h30?`
+      : `Com certeza posso te mandar, ${firstName}, mas como preparamos uma análise estratégica sob medida para a liderança da ${companyName} em ${city}, enviar um PDF genérico não mostraria o real valor. Prefiro compartilhar a tela com você por apenas 10 minutos para te mostrar os dados e as oportunidades da região. Fica melhor para você amanhã às 10h15 ou às 14h30?`
   };
 
   // Objeção 3: "Não temos orçamento no momento."
   const noBudget: ObjectionCrusherItem = {
-    objection: 'Não temos orçamento / verba no momento.',
-    psychologicalAngle: 'Corte de Desperdício Operacional & Payback Imediato (ROI)',
+    objection: isPt ? 'Não temos orçamento / verba no momento.' : 'Não temos orçamento / verba no momento.',
+    psychologicalAngle: 'Engenharia Sem Custos Elevados & Payback Rápido no Mercado Regional',
     keyKeywords: ['sem verba', 'sem orçamento', 'muito caro', 'crise', 'cortando custos', 'sem dinheiro'],
-    sdrGuidance: 'Mostre que a inação custa mais caro do que a solução e que o projeto se autofinancia com o estancamento de perdas.',
-    responseScript: `Faz total sentido sua cautela financeira, ${firstName}, e é justamente por isso que estamos conversando. Nossa solução não é um custo fixo adicional, mas sim um mecanismo projetado para estancar perdas imediatas em ${cleanTechnicalGap} e se pagar logo nas primeiras semanas com as vendas recuperadas. Se eu te provar em 10 minutos com números reais que o retorno é rápido e sem risco, você toparia avaliar a demonstração?`
+    sdrGuidance: 'Mostre que a estratégia não é um custo fixo pesado, mas sim uma alavancagem cirúrgica desenhada para se pagar rapidamente.',
+    responseScript: isPt
+      ? `Compreendo perfeitamente a vossa cautela financeira, ${firstName}, e é justamente por isso que estamos a falar. A nossa metodologia na CriaHub não é um custo fixo pesado, mas sim uma engenharia de captação que se autofinancia com os primeiros contratos de alto ticket fechados aqui em ${city}. Se eu lhe demonstrar em 10 minutos como isso funciona sem risco financeiro, faria sentido avaliar?`
+      : `Faz total sentido sua cautela financeira, ${firstName}, e é justamente por isso que te procurei. O modelo da CriaHub não é um custo fixo pesado, mas sim uma engenharia cirúrgica desenhada para se pagar logo no primeiro ciclo com os novos clientes capturados em ${city}. Se eu te provar em 10 minutos como o retorno é rápido e sem risco, você toparia dar uma olhada amanhã?`
   };
 
   // Objeção 4: "Não tenho tempo para falar agora."
   const noTime: ObjectionCrusherItem = {
-    objection: 'Não tenho tempo para falar agora / Estou ocupado.',
-    psychologicalAngle: 'Micro-Pitch Cirúrgico de 10 Segundos & Respeito ao Tempo do Decisor',
-    keyKeywords: ['sem tempo', 'ocupado', 'em reunião', 'liga depois', 'dirigindo', 'corrido'],
-    sdrGuidance: 'Prometa brevidade absoluta de 10 segundos, solte a dor central e peça uma janela futura.',
-    responseScript: `Prometo ser 100% cirúrgico: só preciso de 10 segundos para te dizer que mapeamos um gargalo pontual em ${cleanTechnicalGap} na ${companyName} que está custando clientes todo dia para vocês. Não quero atrapalhar sua rotina agora, só quero agendar 10 minutos na quinta-feira para te entregar esse mapa resolvido. O início da manhã ou após o almoço funciona melhor para você?`
+    objection: isPt ? 'Não tenho tempo agora / Estou com muita azáfama.' : 'Não tenho tempo para falar agora / Estou na correria.',
+    psychologicalAngle: 'Respeito Imediato ao Tempo do Empresário & Agendamento Cirúrgico',
+    keyKeywords: ['sem tempo', 'ocupado', 'em reunião', 'liga depois', 'dirigindo', 'corrido', 'azáfama'],
+    sdrGuidance: 'Reconheça a intensidade de gerenciar uma empresa líder, prometa brevidade de 10 segundos e marque um horário rápido.',
+    responseScript: isPt
+      ? `Imagino perfeitamente a azáfama a liderar a ${companyName}, ${firstName}! Respeito a 100% o seu tempo: só preciso de 10 minutos cirúrgicos amanhã de manhã para lhe entregar o estudo de expansão de ${city}. Fica-lhe melhor às 09h15 ou às 11h00?`
+      : `Imagino sua correria tocando a operação da ${companyName}, ${firstName}! Respeito 100% seu tempo: só preciso de 10 minutos rápidos amanhã cedo para te entregar o mapa de oportunidades de ${city}. Fica melhor às 09h15 ou às 11h00?`
   };
 
   // Objeção 5: "Não tenho interesse."
   const notInterested: ObjectionCrusherItem = {
-    objection: 'Não tenho interesse.',
-    psychologicalAngle: 'Desarmamento do Decisor com Pergunta Provocativa & Ponto Cego',
+    objection: isPt ? 'Não temos interesse.' : 'Não tenho interesse.',
+    psychologicalAngle: 'Desarme Empático com Foco no Domínio de Mercado Regional',
     keyKeywords: ['sem interesse', 'não quero', 'não preciso', 'obrigado', 'já estamos satisfeitos'],
-    sdrGuidance: 'Aceite o desinteresse inicial e devolva uma pergunta técnica que exponha a vulnerabilidade da operação dele.',
-    responseScript: `Totalmente justo, ${firstName}, até porque você ainda não viu o que descobrimos na análise operacional da ${companyName}. Se hoje vocês já conseguem capturar 100% das demandas sem perder nenhum lead qualificado por ${cleanTechnicalGap}, realmente não faz sentido avançarmos. Mas se você desconfia que pode haver dinheiro ficando na mesa nesse ponto cego, me daria 10 minutos para tirarmos a dúvida na prática?`
+    sdrGuidance: 'Agradeça com classe e faça uma pergunta sutil sobre a consolidação da liderança na cidade.',
+    responseScript: isPt
+      ? `Totalmente compreensível, ${firstName}, até porque a ${companyName} já tem uma posição de prestígio em ${city}. Se hoje vocês já capturam 100% dos clientes de topo da região sem deixar nada para a concorrência, faz todo sentido. Mas se houver interesse em blindar essa liderança sem custos pesados, valeria batermos 10 minutos amanhã?`
+      : `Totalmente justo, ${firstName}, até porque a ${companyName} já é muito respeitada em ${city}. Se hoje vocês já absorvem todas as melhores oportunidades da região sem concorrência, realmente não faz sentido. Mas se você quiser ver como consolidar essa liderança número 1 sem custos pesados, me daria 10 minutos para tirarmos a dúvida na prática?`
+  };
+
+  // Objeção 6: "Vocês operam cá em Portugal? Onde estão sediados / são do Brasil?"
+  const portugalLocalTrust: ObjectionCrusherItem = {
+    objection: isPt ? 'Onde estão sediados? Vocês operam cá em Portugal?' : 'Onde fica a sede de vocês?',
+    psychologicalAngle: 'Abrasileiramento Reverso: 3 Anos de Residência em Portugal & Foco em Rigor Corporativo Europeu',
+    keyKeywords: ['portugal', 'sediados', 'brasil', 'onde ficam', 'escritório', 'local'],
+    sdrGuidance: 'Afirme imediatamente os 3 anos de residência e operação direta em Portugal, suporte no fuso de Lisboa e rigor corporativo europeu, sem tom defensivo.',
+    responseScript: isPt
+      ? `Estamos sediados e a operar diretamente cá em Portugal há mais de 3 anos, ${firstName}, com suporte no fuso horário de Lisboa e trabalho prestado a empresas no eixo Lisboa / Porto. A nossa entrega é desenhada exclusivamente para as exigências fiscais e para o perfil rigoroso do mercado português. O nosso objetivo é eficiência técnica e retorno direto. Faria sentido vermos a estrutura amanhã em 10 minutos?`
+      : `Estamos sediados e operando com estrutura corporativa completa, ${firstName}, atendendo diretamente o seu segmento com suporte dedicado e foco em ROI comprovado. Faria sentido vermos a estrutura amanhã em 10 minutos?`
   };
 
   // Bônus: Gatilhos de Fechamento Rápido (CTAs diretos para Google Calendar)
-  const directEmail = lead.decisionMaker?.directEmail || lead.email || 'seu e-mail principal';
+  const directEmail = lead.decisionMaker?.directEmail || lead.email || 'seu e-mail corporativo';
   
-  const googleCalendarTransition = `Perfeito, ${firstName}. Vou abrir minha agenda do Google Calendar aqui agora: tenho uma janela livre nesta quinta-feira às 10h15 ou na sexta-feira às 14h30 — qual desses dois horários encaixa melhor no seu dia?`;
+  const googleCalendarTransition = isPt
+    ? `Perfeito, ${firstName}. Vou abrir a minha agenda aqui agora: tenho disponibilidade amanhã às 10h15 ou às 14h30 — qual desses horários lhe fica mais conveniente?`
+    : `Perfeito, ${firstName}. Vou abrir minha agenda do Google Calendar aqui agora: tenho uma janela livre amanhã às 10h15 ou às 14h30 — qual desses dois horários fica melhor no seu dia?`;
   
-  const executiveTwoOptionClose = `Excelente. Já estou abrindo o Google Calendar para disparar o convite do Google Meet direto no seu e-mail (${directEmail}) para travarmos 15 minutos focados. Você prefere que eu confirme para quinta pela manhã ou sexta à tarde?`;
+  const executiveTwoOptionClose = isPt
+    ? `Excelente. Já estou a preparar o convite do Google Meet para o seu e-mail (${directEmail}) para conversarmos 10 minutos focados. Prefere amanhã pela manhã ou à tarde?`
+    : `Excelente. Já estou abrindo o Google Calendar para disparar o convite do Google Meet direto no seu e-mail (${directEmail}) para travarmos 10 minutos focados. Você prefere amanhã pela manhã ou à tarde?`;
 
   return {
     targetCompanyProfile: {
       name: companyName,
       decisionMaker: decisionMakerName,
       niche,
-      mappedPain,
-      technicalGapAnchor: cleanTechnicalGap,
+      mappedPain: `Expansão e liderança de mercado em ${city}`,
+      technicalGapAnchor: `Posicionamento e captação de alto valor em ${city}`,
       budgetContext
     },
     objections: {
@@ -102,7 +120,8 @@ export function buildObjectionCrusherMatrix(
       sendByEmail,
       noBudget,
       noTime,
-      notInterested
+      notInterested,
+      portugalLocalTrust
     },
     fastClosingCTAs: {
       googleCalendarTransition,
@@ -120,34 +139,27 @@ export function generateGoogleCalendarUrl(
   details?: string
 ): string {
   const companyName = lead.name || 'Lead';
-  const decisionMaker = lead.decisionMaker?.name || 'Responsável';
+  const decisionMaker = lead.decisionMaker?.name || 'Diretoria';
   const guestEmail = lead.decisionMaker?.directEmail || lead.email || '';
+  const city = lead.city || 'Região';
   
-  const eventTitle = encodeURIComponent(title || `Diagnóstico Estratégico: ${companyName} x Reunião de Alinhamento`);
+  const eventTitle = encodeURIComponent(title || `Alinhamento Estratégico: ${companyName} x CriaHub (${city})`);
   
   const eventDetails = encodeURIComponent(
-    details || `Reunião de Diagnóstico Técnico & Apresentação de Solução para ${companyName}.\n\n` +
+    details || `Reunião de Alinhamento Estratégico & Apresentação do Mapa de Expansão para ${companyName}.\n\n` +
     `Decisor: ${decisionMaker}\n` +
-    `Dor Central Mapeada: ${lead.identifiedPain || 'Otimização de Conversão e Automação'}\n` +
-    `Gaps Identificados: ${(lead.keyFlaws || []).join('; ')}\n\n` +
-    `Link da Sala: Reunião via Google Meet gerada automaticamente.`
+    `Cidade / Região: ${city}\n` +
+    `Objetivo: Consolidar a liderança de mercado e captação de clientes qualificados sem custos pesados.\n\n` +
+    `Sala de Reunião: Google Meet (gerada automaticamente).`
   );
 
-  // Calcula data padrão: próximo dia útil às 10:00 AM (1 hora de duração)
   const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 2);
+  tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(10, 0, 0, 0);
   
-  const endHour = new Date(tomorrow);
-  endHour.setHours(10, 30, 0, 0);
+  const isoStart = tomorrow.toISOString().replace(/-|:|\.\d+/g, '');
+  tomorrow.setMinutes(tomorrow.getMinutes() + 15);
+  const isoEnd = tomorrow.toISOString().replace(/-|:|\.\d+/g, '');
 
-  const formatIsoForGCal = (d: Date) => d.toISOString().replace(/-|:|\.\d+/g, '');
-  const dates = `${formatIsoForGCal(tomorrow)}/${formatIsoForGCal(endHour)}`;
-
-  let url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&details=${eventDetails}&dates=${dates}`;
-  if (guestEmail && guestEmail.includes('@')) {
-    url += `&add=${encodeURIComponent(guestEmail)}`;
-  }
-
-  return url;
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${isoStart}/${isoEnd}&details=${eventDetails}&add=${encodeURIComponent(guestEmail)}`;
 }
