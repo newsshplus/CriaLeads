@@ -303,7 +303,7 @@ ESTRUTURA DE CADA LEAD NO RETORNO (ARRAY JSON):
 =======================================================
 Para cada empresa, gere um objeto JSON rigorosamente estruturado com:
 1. "name": Nome corporativo elegante da empresa (sem sufixos artificiais)
-2. "category": Subsegmento exato (ex: "Clínica de Estética Avançada", "Escritório de Advocacia Empresarial", "Indústria de Embalagens")
+2. "category": Subsegmento exato de Alto Ticket (ex: "Clínica de Estética Avançada", "Energia Solar Fotovoltaica & HVAC", "Incorporadora & Imobiliária de Luxo", "Concessionária de Veículos Premium", "Indústria & Distribuidora B2B")
 3. "description": Resumo de 1 frase do posicionamento da empresa
 4. "address": Endereço plausível com bairro nobre de ${city}
 5. "city": "${city}"

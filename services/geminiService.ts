@@ -44,12 +44,14 @@ function deriveRealSearchTerms(keyword: string, businessProfile: BusinessProfile
   const niches = businessProfile.recommendedHighTicketNiches || [];
   const terms = niches.map(n => {
     const name = (n.niche || n.category || '').toLowerCase();
-    if (/(clínic|clinica|saude|saúde|estetic|estética|odonto|medic|hospital)/.test(name)) return "clínica médica";
-    if (/(advocac|advogad|juridic|direito|tributar)/.test(name)) return "escritório de advocacia";
-    if (/(imobiliar|incorporadora|loteadora|imóve|imove)/.test(name)) return "imobiliária";
-    if (/(industri|metalurg|distribuidor|fabrica|fábrica|logistic)/.test(name)) return "indústria metalúrgica";
-    if (/(consultor|bpo|gestao|gestão|auditori|advisory|financ|contabil)/.test(name)) return "consultoria de gestão";
-    if (/(arquitet|decorac|engenhar)/.test(name)) return "escritório de arquitetura";
+    if (/(solar|energia|fotovolt|climatiz|hvac|ar condicionado)/.test(name)) return "empresa de energia solar";
+    if (/(construc|construç|remodela|reforma|engenhar|empreiteir)/.test(name)) return "construção e remodelações";
+    if (/(clínic|clinica|saude|saúde|estetic|estética|odonto|medic|hospital)/.test(name)) return "clínica de estética e saúde";
+    if (/(software|tecnologi|saas|ti|desenvolviment|automac|automaç)/.test(name)) return "empresa de software e tecnologia";
+    if (/(imobiliar|incorporadora|loteadora|imóve|imove)/.test(name)) return "imobiliária de alto padrão";
+    if (/(industri|metalurg|distribuidor|fabrica|fábrica|logistic)/.test(name)) return "indústria e distribuição";
+    if (/(consultor|bpo|gestao|gestão|auditori|advisory|financ)/.test(name)) return "consultoria empresarial";
+    if (/(arquitet|decorac)/.test(name)) return "escritório de arquitetura";
     return name.split('&')[0].trim().split(/\s+/).slice(0, 3).join(' ');
   });
 
@@ -57,7 +59,7 @@ function deriveRealSearchTerms(keyword: string, businessProfile: BusinessProfile
   // Se não houver nichos definidos, utiliza os 4 nichos mais lucrativos com maior demanda por marketing, sites e CRM:
   return unique.length > 0
     ? unique.slice(0, 4)
-    : ["clínica médica", "escritório de advocacia", "imobiliária", "indústria"];
+    : ["empresa de energia solar", "construção e remodelações", "clínica de estética e saúde", "empresa de software e tecnologia"];
 }
 
 /**

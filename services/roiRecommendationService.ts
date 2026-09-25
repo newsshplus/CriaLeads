@@ -35,9 +35,12 @@ const HIGH_TICKET_POWER_KEYWORDS = [
   'clínica médica', 'clinica medica', 'cirurgia plástica', 'cirurgia plastica', 'dermatologia',
   'odontologia', 'implantes', 'harmonização', 'harmonizacao', 'oftalmologia', 'reprodução assistida',
   'ortopedia', 'hospital', 'laboratório', 'laboratorio', 'saúde integrada', 'estética avançada',
-  // Jurídico e Compliance
-  'advocacia', 'advogado', 'direito empresarial', 'tributário', 'tributario', 'contencioso',
-  'societário', 'societario', 'jurídico', 'juridico', 'compliance',
+  // Energia Solar, Fotovoltaico & Climatização HVAC
+  'energia solar', 'solar', 'fotovoltaica', 'fotovoltaico', 'painel solar', 'inversor',
+  'climatização', 'climatizacao', 'hvac', 'refrigeração industrial', 'eficiência energética',
+  // Veículos Premium, Blindados & Náutica
+  'veículos premium', 'veiculos premium', 'carros importados', 'blindados', 'concessionária premium',
+  'concessionaria premium', 'superesportivos', 'lanchas', 'náutica', 'yachts',
   // Imobiliário e Construção
   'incorporadora', 'loteadora', 'imobiliária', 'imobiliaria', 'construtora', 'engenharia',
   'empreendimentos', 'arquitetura corporativa', 'condomínio fechado',

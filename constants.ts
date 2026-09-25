@@ -38,18 +38,32 @@ export const DEFAULT_HIGH_TICKET_NICHES: HighTicketNicheRecommendation[] = [
     suggestedOfferBundle: "SDR IA no WhatsApp 24/7 + Confirmação Inteligente de Agendamento + Site 3.0"
   },
   {
-    id: "niche-advocacia-corp",
-    niche: "Escritórios de Advocacia Corporativa & Tributária",
-    category: "Serviços Jurídicos B2B",
-    tag: "💎 R$ 15k a R$ 60k",
-    whyGoodMatch: "Honorários consultivos de 5 a 6 dígitos; precisam qualificar teses de clientes antes de alocar tempo dos sócios.",
-    estimatedTicket: "R$ 15.000 a R$ 60.000",
+    id: "niche-solar-climatizacao",
+    niche: "Energia Solar, Fotovoltaico & Climatização HVAC",
+    category: "Energia Renovável & Engenharia",
+    tag: "☀️ R$ 25k a R$ 90k",
+    whyGoodMatch: "Projetos de alto valor agregado onde 1 única venda paga meses de agência; alto volume de leads no WhatsApp que exigem cálculo de economia e dimensionamento rápido.",
+    estimatedTicket: "R$ 25.000 a R$ 90.000 (ou R$ 3.500/mês)",
     criticalGaps: [
-      "Prospecção passiva 100% dependente de indicações",
-      "Sites estáticos sem conversão nem captura LGPD",
-      "Sem qualificação automática de causas e teses"
+      "Perda de 40% das cotações por demora de mais de 25 min no WhatsApp da equipe técnica",
+      "Falta de triagem automática com upload e leitura de conta de luz por IA",
+      "Anúncios no Meta/Google sem rastreamento de lead qualificado via CAPI"
     ],
-    suggestedOfferBundle: "Automação de Triagem de Teses B2B + Outbound Automatizado + Landing Page Institucional de Alta Autoridade"
+    suggestedOfferBundle: "SDR IA de Qualificação de Fatura Solar 24/7 + Gestão de Tráfego de Alta Conversão + CRM de Obras"
+  },
+  {
+    id: "niche-construcao-reformas",
+    niche: "Construção Civil & Reformas de Alto Padrão",
+    category: "Construção & Engenharia de Luxo",
+    tag: "🏗️ R$ 50k a R$ 300k",
+    whyGoodMatch: "Reformas completas e obras com margens elevadas; clientes de alto poder aquisitivo que exigem atendimento ágil com portfólio visual no WhatsApp.",
+    estimatedTicket: "R$ 50.000 a R$ 300.000",
+    criticalGaps: [
+      "Site lento e sem portfólio de fotos de obras no celular",
+      "Demora para agendar visitas técnicas presenciais",
+      "Falta de pré-qualificação de orçamento do cliente"
+    ],
+    suggestedOfferBundle: "Página de Portfólio de Alta Conversão + SDR IA para Triagem de Obras + Campanhas Meta/Google"
   },
   {
     id: "niche-imobiliarias-luxo",
@@ -112,18 +126,32 @@ export const HIGH_TICKET_NICHES_BY_COUNTRY: Record<string, HighTicketNicheRecomm
       suggestedOfferBundle: "SDR IA no WhatsApp 24/7 + Confirmação Inteligente de Agendamento + Site 3.0"
     },
     {
-      id: "pt-niche-advocacia-corp",
-      niche: "Escritórios de Advocacia Corporativa & Fiscal",
-      category: "Serviços Jurídicos B2B",
-      tag: "💎 €8k a €25k",
-      whyGoodMatch: "Honorários consultivos de 5 dígitos; sócios precisam qualificar teses e arrancar de processos manuais e indicações esporádicas.",
-      estimatedTicket: "€8.000 a €25.000",
+      id: "pt-niche-solar-climatizacao",
+      niche: "Empresas de Energia Solar & Climatização HVAC",
+      category: "Energia Renovável & Engenharia",
+      tag: "☀️ €6k a €28k",
+      whyGoodMatch: "Forte incentivo comunitário e procura de particulares e PMEs por redução de custos elétricos; ticket médio elevado onde um único fecho cobre 6 meses de agência e SDR.",
+      estimatedTicket: "€6.000 a €28.000 (ou €1.500/mês)",
       criticalGaps: [
-        "Prospeção passiva 100% dependente de indicações",
-        "Sites institucionais sem conversão nem captura RGPD",
-        "Sem qualificação automática de causas e teses"
+        "Perda de leads de particulares por demora na triagem da fatura no WhatsApp",
+        "Campanhas digitais sem funil de retorno e sem simulação de poupança imediata",
+        "Comerciais de terreno sem cadência de follow-up pós-orçamento"
       ],
-      suggestedOfferBundle: "Automação de Triagem de Teses B2B + Outbound Automatizado + Landing Page de Alta Autoridade"
+      suggestedOfferBundle: "SDR IA no WhatsApp com Leitura de Fatura + Tráfego Pago de Alta Precisão + CRM Integrado"
+    },
+    {
+      id: "pt-niche-construcao-remodelacoes",
+      niche: "Construção Civil & Remodelações de Alto Padrão",
+      category: "Construção & Engenharia de Luxo",
+      tag: "🏗️ €20k a €120k",
+      whyGoodMatch: "Mercado imobiliário premium em Lisboa, Cascais, Porto e Algarve; obras de remodelação completa com margens expressivas e clientes exigentes que valorizam apresentação digital impecável.",
+      estimatedTicket: "€20.000 a €120.000",
+      criticalGaps: [
+        "Sites pesados sem portfólio visual ágil no telemóvel (LCP > 4s)",
+        "Falta de canal direto para agendar visitas técnicas pelo WhatsApp",
+        "Sem qualificação prévia de orçamento do cliente (filtros de ticket mínimo)"
+      ],
+      suggestedOfferBundle: "Página de Portfólio de Alta Conversão + SDR de Triagem de Obras + Campanhas Meta/Google Ads"
     },
     {
       id: "pt-niche-imobiliarias-luxo",
@@ -184,18 +212,18 @@ export const HIGH_TICKET_NICHES_BY_COUNTRY: Record<string, HighTicketNicheRecomm
       suggestedOfferBundle: "SDR IA en WhatsApp 24/7 + Confirmación Inteligente de Citas + Web 3.0"
     },
     {
-      id: "es-niche-abogados",
-      niche: "Despachos de Abogados Corporativos & Fiscales",
-      category: "Servicios Jurídicos B2B",
-      tag: "💎 €9k a €28k",
-      whyGoodMatch: "Honorarios consultivos altos; necesitan cualificar tesis y dejar de depender solo de referidos.",
-      estimatedTicket: "€9.000 a €28.000",
+      id: "es-niche-energia-solar",
+      niche: "Empresas de Energía Solar & Climatización",
+      category: "Energía Renovable & Ingeniería",
+      tag: "☀️ €7k a €30k",
+      whyGoodMatch: "Alto crecimiento en autoconsumo residencial e industrial; un solo contrato de instalación cubre meses de agencia y SDR.",
+      estimatedTicket: "€7.000 a €30.000",
       criticalGaps: [
-        "Prospección pasiva dependiente de referidos",
-        "Sitios sin conversión ni captura RGPD",
-        "Sin cualificación automática de causas"
+        "Pérdida de contactos en WhatsApp por demora técnica en presupuesto",
+        "Campañas de Google/Meta sin triaje automático de factura de luz",
+        "Sin seguimiento automatizado de presupuestos entregados"
       ],
-      suggestedOfferBundle: "Automatización de Triaje de Tesis B2B + Outbound Automatizado + Landing de Autoridad"
+      suggestedOfferBundle: "SDR IA en WhatsApp para Facturas Solares + Meta Ads de Alta Precisión + CRM"
     },
     {
       id: "es-niche-inmobiliarias",
@@ -328,18 +356,18 @@ export const HIGH_TICKET_NICHES_BY_COUNTRY: Record<string, HighTicketNicheRecomm
       suggestedOfferBundle: "AI SDR on WhatsApp 24/7 + Smart Booking Confirmation + Website 3.0"
     },
     {
-      id: "uk-niche-law",
-      niche: "Corporate & Tax Law Firms",
-      category: "Legal Services B2B",
-      tag: "💎 £15k a £50k",
-      whyGoodMatch: "5-to-6 figure retainers; firms need to qualify cases before allocating partner time.",
-      estimatedTicket: "£15,000 to £50,000",
+      id: "uk-niche-solar",
+      niche: "Commercial Solar Energy & HVAC Engineering",
+      category: "Renewable Energy & Engineering",
+      tag: "☀️ £15k to £60k",
+      whyGoodMatch: "High capital investments where a single corporate contract covers annual marketing retainers; fast technical WhatsApp qualification drives sales.",
+      estimatedTicket: "£15,000 to £60,000",
       criticalGaps: [
-        "Passive prospecting dependent on referrals",
-        "Static websites without conversion",
-        "No automated case qualification"
+        "Inbound commercial leads wait hours for manual bill analysis",
+        "Technical engineers spending time on unqualified inquiries",
+        "Weak follow-up on outstanding project proposals"
       ],
-      suggestedOfferBundle: "B2B Case Triage Automation + Outbound Engine + Authority Landing Pages"
+      suggestedOfferBundle: "AI SDR with Automated Bill Extraction + High-Converting Landing Pages + CRM Pipeline"
     },
     {
       id: "uk-niche-realestate",
@@ -562,7 +590,7 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
   businessName: "Nexus AI Automation & B2B Solutions",
   servicesDescription: "Agência de Automação de Inteligência Artificial, Criação de Sites Modernos 3.0, SDRs Autônomos de WhatsApp/Email, Integrações n8n/Make, CRM e Otimização de Processos de Vendas para empresas de Alto Ticket.",
   ticketMedio: "R$ 8.000 - R$ 35.000 / projeto (ou MRR de R$ 4.500/mês)",
-  icpTarget: "Empresas com ticket médio elevado (Clínicas Premium, Escritórios de Advocacia, Incorporadoras, Indústrias B2B, Consultorias) que precisam modernizar sua presença digital e atendimento automatizado para fechar mais vendas.",
+  icpTarget: "Empresas com ticket médio elevado (Clínicas Médicas & Estética Avançada, Construtoras & Incorporadoras de Alto Padrão, Energia Solar & Climatização, Concessionárias & Veículos Premium, Indústrias B2B e Consultorias) que utilizam o meio digital positivamente e precisam de automação de SDR e gestão de presença digital mensal para fechar mais contratos.",
   senderName: "Nivaldo Freitas",
   senderRole: "Estrategista Digital & Consultoria Digital Independente",
   useGenericSenderOnFirstContact: true,
@@ -612,9 +640,10 @@ export const PORTUGAL_DISTRICTS = [
 export const BUSINESS_CATEGORIES = [
   "Clínicas Médicas e Odontológicas",
   "Imobiliárias e Incorporadoras",
+  "Energia Solar, Fotovoltaico & Climatização",
+  "Concessionárias & Veículos Premium",
   "Agências de Marketing e Publicidade",
   "Consultorias Empresariais e Financeiras",
-  "Escritórios de Advocacia B2B",
   "Empresas de Tecnologia e SaaS",
   "Logística e Transportes",
   "Indústrias e Manufatura",

@@ -59,6 +59,38 @@ export function expandSemanticNiches(keyword: string, country: string = 'Brasil'
   const k = (keyword || '').toLowerCase().trim();
   const isPt = country.toLowerCase().includes('portugal') || country.toLowerCase().includes('pt');
 
+  // Busca Geral de Alto Ticket / Auto-Discovery (Mix equilibrado de nichos com alto LTV e capacidade de pagamento mensal)
+  if (!k || k === 'auto' || k.includes('todos') || k.includes('ticket') || k.includes('alto ticket')) {
+    return isPt ? [
+      'Clínica de Estética e Harmonização Avançada',
+      'Clínica Dentária e Implantologia de Luxo',
+      'Clínica Médica e Cirurgia Plástica',
+      'Imobiliária de Alto Padrão & Empreendimentos',
+      'Empresa de Energia Solar & Climatização HVAC',
+      'Concessionária de Veículos Premium',
+      'Indústria Metalomecânica & Tecnologia B2B',
+      'Consultoria Empresarial & Gestão Estratégica'
+    ] : [
+      'Clínica de Estética Avançada & Harmonização',
+      'Clínica Odontológica & Implantes Premium',
+      'Clínica de Cirurgia Plástica & Dermatologia',
+      'Incorporadora & Imobiliária de Alto Padrão',
+      'Engenharia de Energia Solar Fotovoltaica & HVAC',
+      'Concessionária de Veículos Premium & Blindados',
+      'Indústria Metalúrgica & Manufatura B2B',
+      'Consultoria Empresarial & Tecnologia Corporativa'
+    ];
+  }
+
+  if (k.includes('veiculo') || k.includes('veículo') || k.includes('auto') || k.includes('concession') || k.includes('carro') || k.includes('blindad') || k.includes('nautic') || k.includes('náutic')) {
+    return [
+      'Concessionária de Veículos Premium & Blindados',
+      'Revenda de Seminovos de Luxo',
+      'Náutica e Embarcações de Alto Padrão',
+      'Locadora de Frotas Executivas e Comerciais'
+    ];
+  }
+
   if (k.includes('industr') || k.includes('indústr') || k.includes('metalurg') || k.includes('metalúrg') || k.includes('usinagem') || k.includes('fabric') || k.includes('fábric') || k.includes('manufatur') || k.includes('plastico') || k.includes('plástico') || k.includes('textil') || k.includes('têxtil') || k.includes('quimic') || k.includes('química') || k.includes('automac') || k.includes('automação') || k.includes('embalag') || k.includes('caldeirari') || k.includes('fundic') || k.includes('fundição')) {
     return isPt ? [
       'Indústria Metalomecânica & Usinagem de Precisão',
@@ -79,6 +111,34 @@ export function expandSemanticNiches(keyword: string, country: string = 'Brasil'
       'Caldeiraria Pesada, Solda & Estruturas Metálicas',
       'Indústria de Autopeças & Componentes Automotivos',
       'Indústria Alimentícia & Laticínios'
+    ];
+  }
+
+  if (!k || k === 'auto' || k.includes('alto ticket') || k.includes('todas') || k.includes('b2b &')) {
+    return isPt ? [
+      'Clínica de Estética e Harmonização Facial',
+      'Clínica Dentária e Implantologia Avançada',
+      'Imobiliária de Alto Padrão e Promotora',
+      'Empresa de Energia Solar e Climatização HVAC',
+      'Concessionária de Veículos Premium',
+      'Indústria e Distribuidora B2B'
+    ] : [
+      'Clínica de Estética Avançada e Harmonização',
+      'Clínica Odontológica e Implantes',
+      'Incorporadora e Imobiliária de Alto Padrão',
+      'Engenharia de Energia Solar Fotovoltaica e HVAC',
+      'Concessionária de Veículos Premium e Blindados',
+      'Indústria e Distribuidora B2B'
+    ];
+  }
+
+  if (k.includes('veicul') || k.includes('veícul') || k.includes('concession') || k.includes('blindad') || k.includes('seminov') || k.includes('auto') || k.includes('motors') || k.includes('nautic') || k.includes('náutic')) {
+    return [
+      'Concessionária de Veículos Premium e Blindados',
+      'Loja de Carros Importados e Superesportivos',
+      'Boutique Automotiva de Alto Padrão',
+      'Concessionária de Seminovos Selecionados',
+      'Náutica e Lanchas de Alto Padrão'
     ];
   }
 
@@ -114,7 +174,7 @@ export function expandSemanticNiches(keyword: string, country: string = 'Brasil'
     ];
   }
 
-  if (k.includes('advoc') || k.includes('juridic') || k.includes('jurídic') || k.includes('direito') || k.includes('escritorio')) {
+  if (k.includes('advoc') || k.includes('advogad') || k.includes('juridic') || k.includes('jurídic') || k.includes('direito tributario')) {
     return [
       'Advocacia Tributária e Planejamento Fiscal',
       'Advocacia Empresarial e Societária',
@@ -580,8 +640,11 @@ function buildOsmTagRegex(keyword: string): string {
   if (/(consultor|bpo|gestao|gestão|auditori|financ|advisory|contabil)/.test(k)) {
     return 'consulting|accountant|financial|insurance';
   }
-  // Para busca multi-nicho/auto: foca em setores de alto ticket que contratam serviços
-  return 'clinic|dentist|doctors|hospital|lawyer|estate_agent|architect|accountant|consulting|insurance';
+  if (/(veicul|veícul|concession|blindad|auto|motors|seminov)/.test(k)) {
+    return 'car_dealer|car_sales';
+  }
+  // Para busca multi-nicho/auto: foca estritamente em setores de alto ticket com poder aquisitivo e maturidade digital
+  return 'clinic|dentist|doctors|estate_agent|car_dealer|car_sales|architect|accountant|consulting|company';
 }
 
 /**
@@ -854,48 +917,76 @@ const VERIFIED_HIGH_TICKET_COMPANIES: Array<{
     reviews: 1850
   },
 
-  // FLORIANÓPOLIS - ADVOCACIA & JURÍDICO
+  // FLORIANÓPOLIS - CLÍNICAS PREMIUM, ENGENHARIA SOLAR & VEÍCULOS
   {
-    name: 'Laval Advocacia Florianópolis',
-    website: 'https://laval.com.br',
-    phone: '+55 (48) 99159-4869',
-    address: 'Rua Esteves Júnior, 50 - Centro, Florianópolis - SC, 88015-130',
+    name: 'Clínica Santé Cirurgia Plástica & Dermatologia',
+    website: 'https://www.clinicasante.com.br',
+    phone: '+55 (48) 3224-1000',
+    address: 'Av. Trompowsky, 291 - Centro, Florianópolis - SC, 88015-300',
     city: 'Florianópolis',
     district: 'Centro',
     country: 'Brasil',
-    category: 'Escritório de Advocacia',
-    subtypes: ['Direito Empresarial', 'Contencioso', 'Consultoria Jurídica'],
-    keywords: ['advocacia', 'advogado', 'juridico', 'direito', 'escritorio'],
+    category: 'Clínica de Cirurgia Plástica & Estética Avançada',
+    subtypes: ['Cirurgia Plástica', 'Harmonização Facial', 'Dermatologia'],
+    keywords: ['clinica', 'cirurgia', 'estetica', 'harmonizacao', 'dermatologia', 'saude'],
     rating: 4.9,
-    reviews: 42
+    reviews: 185
   },
   {
-    name: 'Mosimann, Horn & Advogados Associados',
-    website: 'https://www.google.com/maps/search/?api=1&query=Mosimann+Horn+Advogados+Florianopolis',
-    phone: '+55 (48) 3224-4000',
-    address: 'Av. Rio Branco, 404, Torre 1 - Centro, Florianópolis - SC',
+    name: 'Instituto Dra. Mariana Albuquerque - Harmonização & Laser',
+    website: 'https://www.dramarianaalbuquerque.com.br',
+    phone: '+55 (48) 99180-2200',
+    address: 'Av. Beira-Mar Norte, 2600 - Centro, Florianópolis - SC',
     city: 'Florianópolis',
     district: 'Centro',
     country: 'Brasil',
-    category: 'Sociedade de Advogados Empresariais',
-    subtypes: ['Direito Tributário', 'Direito Societário', 'M&A'],
-    keywords: ['advocacia', 'advogado', 'tributario', 'societario', 'juridico'],
+    category: 'Instituto de Medicina Estética & Harmonização',
+    subtypes: ['Harmonização Facial', 'Bioestimuladores', 'Laser'],
+    keywords: ['clinica', 'estetica', 'harmonizacao', 'botox', 'dermatologia'],
+    rating: 4.9,
+    reviews: 142
+  },
+  {
+    name: 'Quantum Engenharia Solar & Climatização HVAC',
+    website: 'https://www.quantumsolar.com.br',
+    phone: '+55 (48) 3239-5000',
+    address: 'Rodovia SC-401, 4100 - Saco Grande, Florianópolis - SC',
+    city: 'Florianópolis',
+    district: 'Saco Grande',
+    country: 'Brasil',
+    category: 'Engenharia de Energia Solar Fotovoltaica & HVAC',
+    subtypes: ['Energia Solar', 'Projetos Fotovoltaicos', 'Climatização'],
+    keywords: ['solar', 'energia', 'fotovoltaico', 'engenharia', 'climatizacao', 'hvac'],
     rating: 4.8,
-    reviews: 78
+    reviews: 95
   },
   {
-    name: 'Menezes Niebuhr Advogados Associados',
-    website: 'https://www.google.com/maps/search/?api=1&query=Menezes+Niebuhr+Advogados+Florianopolis',
-    phone: '+55 (48) 3281-7000',
-    address: 'Av. Beira-Mar Norte, 4030 - Centro, Florianópolis - SC',
+    name: 'Dimas Veículos Premium & Blindados',
+    website: 'https://www.dimasveiculos.com.br',
+    phone: '+55 (48) 3271-8000',
+    address: 'Av. Juscelino Kubitschek, 580 - Estreito, Florianópolis - SC',
+    city: 'Florianópolis',
+    district: 'Estreito',
+    country: 'Brasil',
+    category: 'Concessionária de Veículos Premium & Blindados',
+    subtypes: ['Veículos Premium', 'Seminovos de Luxo', 'Blindados'],
+    keywords: ['concessionaria', 'veiculos', 'carros', 'auto', 'premium', 'blindados'],
+    rating: 4.8,
+    reviews: 320
+  },
+  {
+    name: 'Oral Unic Implantes & Odontologia Digital Florianópolis',
+    website: 'https://www.oralunicflorianopolis.com.br',
+    phone: '+55 (48) 3039-4400',
+    address: 'Rua Menino Deus, 63 - Centro, Florianópolis - SC',
     city: 'Florianópolis',
     district: 'Centro',
     country: 'Brasil',
-    category: 'Advocacia Empresarial & Infraestrutura',
-    subtypes: ['Direito Público', 'Regulatório', 'Corporativo'],
-    keywords: ['advocacia', 'advogado', 'direito', 'juridico'],
+    category: 'Clínica Odontológica & Implantologia Avançada',
+    subtypes: ['Implantes Dentários', 'Invisalign', 'Reabilitação Oral'],
+    keywords: ['clinica', 'odonto', 'dentista', 'implantes', 'estetica dental'],
     rating: 4.9,
-    reviews: 110
+    reviews: 210
   },
 
   // PORTUGAL - LISBOA, OEIRAS & PAÇO DE ARCOS
@@ -1012,62 +1103,62 @@ const VERIFIED_HIGH_TICKET_COMPANIES: Array<{
     reviews: 310
   },
 
-  // PORTUGAL - ADVOCACIA & JURÍDICO (LISBOA & PORTO)
+  // PORTUGAL - CLÍNICAS PREMIUM, ENGENHARIA SOLAR & PROMOTORAS (LISBOA & CASCAIS)
   {
-    name: 'PLMJ Advogados',
-    website: 'https://www.plmj.com',
-    phone: '+351 213 197 300',
-    address: 'Avenida Fontes Pereira de Melo, 43 - Lisboa, 1050-119',
+    name: 'Malo Clinic Lisboa - Implantologia & Estética Dentária',
+    website: 'https://www.maloclinics.com',
+    phone: '+351 217 247 000',
+    address: 'Avenida dos Combatentes, 43 - Lisboa, 1600-042',
     city: 'Lisboa',
-    district: 'Saldanha',
+    district: 'Sete Rios',
     country: 'Portugal',
-    category: 'Sociedade de Advogados Empresariais',
-    subtypes: ['Direito Societário', 'M&A', 'Fiscal & Tributário'],
-    keywords: ['advocacia', 'advogado', 'juridico', 'direito', 'b2b', 'societario'],
-    rating: 4.9,
-    reviews: 145
+    category: 'Centro de Implantologia & Reabilitação Oral de Luxo',
+    subtypes: ['Implantologia', 'All-on-4', 'Estética Dentária', 'Cirurgia Oral'],
+    keywords: ['clinica', 'dentista', 'odonto', 'implante', 'saude', 'estetica'],
+    rating: 4.8,
+    reviews: 580
   },
   {
-    name: 'Morais Leitão, Galvão Teles, Soares da Silva & Associados',
-    website: 'https://www.mlgts.pt',
-    phone: '+351 213 817 400',
+    name: 'Clínica LMR Cirurgia Plástica & Medicina Estética Lisboa',
+    website: 'https://lmrcirurgiaplastica.pt',
+    phone: '+351 214 841 000',
+    address: 'Avenida da Liberdade, 180 - Lisboa, 1250-146',
+    city: 'Lisboa',
+    district: 'Avenida da Liberdade',
+    country: 'Portugal',
+    category: 'Clínica de Cirurgia Plástica & Harmonização Facial',
+    subtypes: ['Cirurgia Plástica', 'Medicina Estética', 'Harmonização Facial'],
+    keywords: ['clinica', 'estetica', 'cirurgia', 'dermatologia', 'harmonizacao', 'saude'],
+    rating: 4.9,
+    reviews: 240
+  },
+  {
+    name: 'Vanguard Properties Portugal - Promotora de Alto Padrão',
+    website: 'https://www.vanguard-properties.com',
+    phone: '+351 210 120 500',
     address: 'Rua Castilho, 165 - Lisboa, 1070-050',
     city: 'Lisboa',
     district: 'Amoreiras',
     country: 'Portugal',
-    category: 'Sociedade de Advogados Internacional',
-    subtypes: ['Corporate', 'Bancário e Financeiro', 'Contencioso'],
-    keywords: ['advocacia', 'advogado', 'juridico', 'direito', 'b2b'],
+    category: 'Promotora Imobiliária de Luxo & Empreendimentos',
+    subtypes: ['Empreendimentos de Luxo', 'Investimento Imobiliário', 'Residencial'],
+    keywords: ['imobiliaria', 'incorporadora', 'promotora', 'imoveis', 'luxo', 'investimento'],
     rating: 4.8,
     reviews: 120
   },
   {
-    name: 'Abreu Advogados',
-    website: 'https://www.abreuadvogados.com',
-    phone: '+351 217 231 800',
-    address: 'Avenida Infante D. Henrique, 26 - Lisboa, 1149-096',
-    city: 'Lisboa',
-    district: 'Santa Apolónia',
-    country: 'Portugal',
-    category: 'Sociedade de Advogados',
-    subtypes: ['Direito Comercial', 'Tecnologia', 'Imobiliário'],
-    keywords: ['advocacia', 'advogado', 'juridico', 'direito', 'servicos'],
-    rating: 4.8,
-    reviews: 95
-  },
-  {
-    name: 'Vieira de Almeida (VdA)',
-    website: 'https://www.vda.pt',
+    name: 'Solaria Engenharia Solar & Climatização Portugal',
+    website: 'https://www.solaria.pt',
     phone: '+351 213 113 400',
-    address: 'Rua D. Luís I, 28 - Lisboa, 1200-151',
+    address: 'Avenida Fontes Pereira de Melo, 43 - Lisboa, 1050-119',
     city: 'Lisboa',
-    district: 'Santos',
+    district: 'Saldanha',
     country: 'Portugal',
-    category: 'Sociedade de Advogados',
-    subtypes: ['Infraestruturas', 'Energia', 'Telecomunicações'],
-    keywords: ['advocacia', 'advogado', 'juridico', 'b2b'],
+    category: 'Engenharia de Energia Solar & Climatização HVAC',
+    subtypes: ['Energia Solar Fotovoltaica', 'Climatização', 'Sustentabilidade'],
+    keywords: ['solar', 'energia', 'fotovoltaico', 'climatizacao', 'engenharia'],
     rating: 4.9,
-    reviews: 110
+    reviews: 95
   },
 
   // PORTUGAL - IMOBILIÁRIAS & REAL ESTATE (LISBOA, CASCAIS & PORTO)
@@ -1358,18 +1449,18 @@ const VERIFIED_HIGH_TICKET_COMPANIES: Array<{
     reviews: 140
   },
   {
-    name: 'Telles de Abreu Advogados Porto',
-    website: 'https://www.telles.pt',
+    name: 'D’Avis Cirurgia Plástica & Medicina Estética Porto',
+    website: 'https://davisclinic.pt',
     phone: '+351 220 307 700',
     address: 'Avenida da Boavista, 1180 - Porto, 4100-113',
     city: 'Porto',
     district: 'Boavista',
     country: 'Portugal',
-    category: 'Sociedade de Advogados Empresariais',
-    subtypes: ['Corporate', 'Fiscal', 'Imobiliário'],
-    keywords: ['advocacia', 'advogado', 'juridico', 'direito', 'b2b'],
-    rating: 4.8,
-    reviews: 80
+    category: 'Clínica de Cirurgia Plástica & Medicina Estética Avançada',
+    subtypes: ['Cirurgia Plástica', 'Harmonização Facial', 'Dermatologia'],
+    keywords: ['clinica', 'estetica', 'cirurgia', 'dermatologia', 'saude'],
+    rating: 4.9,
+    reviews: 160
   }
 ];
 

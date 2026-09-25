@@ -347,7 +347,7 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
                     type="text"
                     value={formData.icpTarget}
                     onChange={e => setFormData({ ...formData, icpTarget: e.target.value })}
-                    placeholder="Ex: Clínicas Médicas, Escritórios de Advocacia, Incorporadoras e Empresas B2B"
+                    placeholder="Ex: Clínicas Médicas, Energia Solar, Incorporadoras, Veículos Premium e Empresas B2B"
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   />
                 </div>

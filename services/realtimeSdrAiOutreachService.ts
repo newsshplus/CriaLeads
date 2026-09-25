@@ -554,6 +554,219 @@ export const NICHE_OUTREACH_BLUEPRINTS: Record<string, NicheOutreachBlueprint> =
         nichePainDiagnosis: 'Resistência justificada a abordagens comerciais vazias que não trazem valor imediato.'
       }
     }
+  },
+
+  // 8. CLÍNICAS MÉDICAS, ESTÉTICA AVANÇADA & CIRURGIA PLÁSTICA
+  clinica_estetica: {
+    nicheId: 'clinica_estetica',
+    nicheLabel: 'Clínica Médica, Estética Avançada & Cirurgia Plástica',
+    typicalDecisor: 'Dr(a). Diretor(a) Clínico(a) / Sócio-Proprietário(a)',
+    corePain: 'Perda de pacientes particulares que procuram procedimentos de alto valor (€ 1.500 a € 8.000 / R$ 3.000 a R$ 35.000) no WhatsApp fora de horas e no-show em avaliações.',
+    specificGaps: [
+      'Ausência de triagem automática e acolhimento em menos de 15 segundos no WhatsApp 24/7',
+      'Pacientes que pesquisam procedimentos à noite sem resposta imediata migram para concorrentes no Google Maps',
+      'Falta de régua automatizada de confirmação prévia e redução de faltas em consultas avaliativas'
+    ],
+    tones: {
+      executivo_ceo: {
+        toneLabel: 'Direto ao Diretor Clínico / Sócio',
+        callAnchor20s: (company, contact, city) =>
+          `"Dr. ${contact}, viva. Daqui fala o Gonçalo da CriaHub. Sei que o seu dia clínico na ${company} é intenso. Serei cirúrgico: clínicas de estética e medicina em ${city} perdem até 40% das avaliações particulares porque as pacientes pesquisam tratamentos à noite e aos fins de semana e a receção só responde no dia seguinte. Nós ativamos um acolhimento inteligente com IA que atende em 10 segundos e agenda a consulta. Pode ouvir-me 60 segundos?"`,
+        whatsappIcebreaker: (company, contact, city) =>
+          `Dr. ${contact}, viva. Tudo bem?\n\nAcompanho a excelente reputação da ${company} em ${city}. Notámos um ponto crítico comum em clínicas de medicina e estética de alto padrão: pacientes interessadas em harmonização, cirurgia ou protocolos avançados mandam mensagem no WhatsApp fora de horas e acabam por agendar noutro local se demorarem a ser acolhidas.\n\nEstruturámos um assistente inteligente com IA que responde em menos de 15 segundos, tira dúvidas de procedimentos e agenda a consulta diretamente na vossa agenda 24/7.\n\nFaria sentido apresentar-lhe uma prévia prática de 2 minutos esta semana?\n\nCom os melhores cumprimentos,\nGonçalo | CriaHub Portugal`,
+        whatsappFollowup24h: (company, contact) =>
+          `Dr. ${contact}, passando só para saber se teve oportunidade de ver a sugestão para o acolhimento digital da ${company}. Se preferir, envio uma breve nota de voz de 30 segundos!`,
+        coldCallTeleprompter: (company, contact, city) =>
+          `"Dr. ${contact}, reparei que na ${company} as pacientes que solicitam informações sobre procedimentos estéticos pelo sítio web ou Instagram não recebem triagem imediata à noite. Nós eliminamos essa fuga com um assistente que já qualifica o procedimento e reserva a avaliação. Fica-lhe melhor quinta às 11h ou sexta às 15h?"`,
+        objectionKiller: (contact) =>
+          `"Compreendo perfeitamente, Dr. ${contact}. O objetivo não é substituir o atendimento humano caloroso da sua receção, mas sim acolher a paciente instantaneamente à noite ou ao fim de semana para que ela não vá para a clínica vizinha."`,
+        nichePainDiagnosis: 'Perda de pacientes particulares de alto ticket por falta de resposta imediata fora do horário da receção.'
+      },
+      gatilho_gap: {
+        toneLabel: 'Gatilho de GAP Operacional Técnico',
+        callAnchor20s: (company, contact, city) =>
+          `"Dr. ${contact}, viva. Fizemos um teste técnico no canal de marcações da ${company} e notámos que o tempo de resposta a procedimentos de alto valor ultrapassa 45 minutos em horários de pico. Nesse intervalo, a paciente no Google Maps já contactou outra clínica em ${city}. Desenhámos a solução exata para isso."`,
+        whatsappIcebreaker: (company, contact, city) =>
+          `Dr. ${contact}, viva. Notei que a ${company} investe na sua presença digital, mas o primeiro contacto no WhatsApp ainda depende 100% de disponibilidade manual da receção.\n\nEm procedimentos de alto ticket, quem responde em menos de 2 minutos fecha 3x mais avaliações do que quem demora 1 hora.\n\nImplementamos essa triagem inteligente em 48h. Vale vermos em 2 minutos?`,
+        whatsappFollowup24h: (company, contact) =>
+          `Dr. ${contact}, envio-lhe os números de comparecimento de uma clínica parceira se tiver interesse em analisar!`,
+        coldCallTeleprompter: (company, contact) =>
+          `"Dr. ${contact}, garantimos que nenhuma paciente interessada em procedimentos na ${company} fique sem resposta imediata. Fica-lhe melhor falar amanhã de manhã ou à tarde?"`,
+        objectionKiller: (contact) =>
+          `"Precisamente por a vossa equipa já ser muito ocupada: a IA faz a pré-qualificação inicial e entrega a paciente já informada e com data pré-agendada."`,
+        nichePainDiagnosis: 'Lentidão no primeiro contacto gerando desistência em pacientes particulares de alto padrão.'
+      },
+      estudo_caso: {
+        toneLabel: 'Estudo de Caso & Validação Local',
+        callAnchor20s: (company, contact, city) =>
+          `"Dr. ${contact}, viva. Apoiámos recentemente uma clínica estética em ${city} que aumentou em 44% os agendamentos particulares ao ativar atendimento de WhatsApp 24/7 com IA. Gostaria de ver o formato exato que utilizámos?"`,
+        whatsappIcebreaker: (company, contact, city) =>
+          `Dr. ${contact}, boa tarde. Um dado concreto do seu nicho em Portugal:\n\nUma clínica estética parceira recuperou mais de € 9.800 em procedimentos num mês ao ativar resposta automática e confirmação ativa contra faltas no WhatsApp.\n\nConsigo mostrar-lhe a estrutura em 5 minutos no ecrã esta semana?`,
+        whatsappFollowup24h: (company, contact) =>
+          `Dr. ${contact}, se fizer sentido analisar o resumo em PDF da clínica parceira, diga-me por aqui!`,
+        coldCallTeleprompter: (company, contact) =>
+          `"Dr. ${contact}, são números reais de clínicas de medicina e estética. Só preciso de 3 minutos para avaliar se faz sentido para a ${company}."`,
+        objectionKiller: (contact) =>
+          `"Compreendo perfeitamente, Dr. ${contact}. Não trazemos curiosos, filtramos exclusivamente quem tem interesse genuíno e capacidade de investimento."`,
+        nichePainDiagnosis: 'Ceticismo com promessas de agências que não entendem a ética e o perfil de clientes de medicina estética.'
+      },
+      quebra_padrao: {
+        toneLabel: 'Quebra de Padrão (Sem Rodeios)',
+        callAnchor20s: (company, contact) =>
+          `"${contact}, viva. Sei que os médicos dispensam abordagens de agências tradicionais. Não lhe vou falar de publicações em redes: identifiquei onde a ${company} está a perder pacientes de tratamentos caros todos os meses. Mostro-lhe em 60 segundos."`,
+        whatsappIcebreaker: (company, contact) =>
+          `Olá ${contact}, sem discursos prontos de marketing: identifiquei uma quebra real na captação de pacientes de tratamentos estéticos da ${company}.\n\nSe lhe enviar uma demonstração de 40 segundos a mostrar o ponto exato, teria oportunidade de ver?`,
+        whatsappFollowup24h: (company, contact) =>
+          `Olá ${contact}! Se pretender otimizar o canal da clínica, estarei por aqui. Continuação de bom trabalho!`,
+        coldCallTeleprompter: (company, contact) =>
+          `"${contact}, identifiquei onde as vossas pacientes de maior valor estão a desistir antes de agendar na ${company}. Mostro-lhe em 2 minutos na quinta ou sexta?"`,
+        objectionKiller: (contact) =>
+          `"Sem qualquer problema, ${contact}. Se a agenda já estiver com 100% de ocupação e zero faltas, de facto a nossa solução não é necessária!"`,
+        nichePainDiagnosis: 'Resistência a marketing agressivo que desrespeita a autoridade médica.'
+      }
+    }
+  },
+
+  // 9. IMOBILIÁRIAS CORPORATIVAS & PROMOTORAS DE MÉDIO/ALTO PADRÃO
+  imobiliaria_corporate: {
+    nicheId: 'imobiliaria_corporate',
+    nicheLabel: 'Agências Imobiliárias & Promotoras de Médio/Alto Padrão',
+    typicalDecisor: 'Diretor(a) Comercial & Sócio-Gerente',
+    corePain: 'Leads de anúncios e portais demoram mais de 15 minutos para serem triados, esfriando o interesse de compradores e investidores com capital aprovado.',
+    specificGaps: [
+      'Tempo de resposta lento para leads de portais (Idealista/Supercasa/Zap) faz o comprador falar com outra agência',
+      'Falta de triagem prévia de capacidade de entrada e financiamento antes de encaminhar ao consultor',
+      'Corretores de plantão sobrecarregados com contatos desqualificados'
+    ],
+    tones: {
+      executivo_ceo: {
+        toneLabel: 'Direto ao Diretor Comercial / Sócio',
+        callAnchor20s: (company, contact, city) =>
+          `"${contact}, viva. Falo com o responsável comercial da ${company}? Serei direto: compradores de imóveis de médio e alto padrão em ${city} que procuram empreendimentos ao fim do dia esperam resposta imediata com plantas e condições. Se demorar 20 minutos, eles já estão a falar com outro mediador. Nós ligamos um SDR de IA que atende em 15 segundos e agenda a visita com o seu consultor. Faria sentido falarmos 3 minutos?"`,
+        whatsappIcebreaker: (company, contact, city) =>
+          `Olá ${contact}, viva. Tudo bem?\n\nAcompanho o portfólio da ${company} em ${city}. Identificámos uma dor clássica no setor imobiliário: leads de portais e campanhas que chegam fora de horas e arrefecem porque os consultores estão em visitas de terreno.\n\nEstruturámos um SDR com IA no WhatsApp que qualifica o comprador em 15 segundos, simula a faixa de investimento e entrega o lead quente na mão do corretor de plantão.\n\nTeria 5 minutos nesta quinta para eu lhe mostrar como funciona na prática?\n\nCom os melhores cumprimentos,\nGonçalo | CriaHub Portugal`,
+        whatsappFollowup24h: (company, contact) =>
+          `Olá ${contact}! Preparei um breve exemplo de como o lead de imóvel é qualificado automaticamente. Se tiver 1 minuto para ver, diga-me por aqui!`,
+        coldCallTeleprompter: (company, contact) =>
+          `"${contact}, estamos a acelerar a distribuição de compradores qualificados para mediadoras em ${city}. Fica-lhe melhor falarmos amanhã às 10h ou às 14h30?"`,
+        objectionKiller: (contact) =>
+          `"Compreendo, ${contact}. A grande vantagem é que os seus consultores deixam de perder tempo a telefonar a curiosos sem capital e focam-se exclusivamente em visitas presenciais com compradores qualificados."`,
+        nichePainDiagnosis: 'Perda de compradores de imóveis por demora no tempo de resposta inicial.'
+      },
+      gatilho_gap: {
+        toneLabel: 'Gatilho de GAP Operacional',
+        callAnchor20s: (company, contact, city) =>
+          `"${contact}, viva. Testámos o canal de contacto da ${company} e notámos que o envio de brochuras e agendamento de visitas não dispõe de triagem automática no WhatsApp. Nós resolvemos isso de imediato."`,
+        whatsappIcebreaker: (company, contact, city) =>
+          `Olá ${contact}, viva. Sabia que 68% dos compradores de imóveis fecham com a primeira imobiliária que envia a planta e esclarece as condições no WhatsApp em menos de 3 minutos?\n\nIntegrámos uma automação inteligente para a ${company} que garante essa velocidade 24/7. Vale vermos em 2 minutos?`,
+        whatsappFollowup24h: (company, contact) =>
+          `Olá ${contact}! Passando só para confirmar se teve oportunidade de ver a sugestão de triagem imobiliária.`,
+        coldCallTeleprompter: (company, contact) =>
+          `"${contact}, ligamos o seu inventário de imóveis diretamente a um assistente que tria compradores no WhatsApp. Quer ver uma demonstração rápida amanhã?"`,
+        objectionKiller: (contact) =>
+          `"Precisamente: a automação apoia a sua equipa comercial, garantindo que nenhum comprador fique sem resposta no fim de semana."`,
+        nichePainDiagnosis: 'Gargalo no atendimento fora de horário comercial em momentos de decisão do comprador de imóveis.'
+      },
+      estudo_caso: {
+        toneLabel: 'Estudo de Caso & ROI Imobiliário',
+        callAnchor20s: (company, contact, city) =>
+          `"${contact}, viva. Recentemente apoiámos uma agência parceira em ${city} que aumentou em 35% as visitas aos imóveis apenas reduzindo o tempo de resposta aos portais para menos de 1 minuto. Gostaria de perceber a metodologia?"`,
+        whatsappIcebreaker: (company, contact, city) =>
+          `${contact}, boa tarde. Um exemplo prático do setor imobiliário:\n\nUma promotora parceira conseguiu acelerar em 3x a marcação de visitas em lançamentos com triagem automática por WhatsApp.\n\nConsigo apresentar-lhe os números em 5 minutos esta semana?`,
+        whatsappFollowup24h: (company, contact) =>
+          `${contact}, tenho o resumo com os resultados da agência parceira. Se quiser ver, é só avisar!`,
+        coldCallTeleprompter: (company, contact) =>
+          `"${contact}, são métricas reais de captação de compradores. Fica-lhe melhor quinta às 10h ou sexta às 15h?"`,
+        objectionKiller: (contact) =>
+          `"Compreendo, ${contact}. Apenas uma venda adicional de imóvel por trimestre já cobre o investimento de todo o ano com margem folgada."`,
+        nichePainDiagnosis: 'Necessidade de justificar ROI imediato com base em comissões de fecho de imóveis.'
+      },
+      quebra_padrao: {
+        toneLabel: 'Quebra de Padrão (Sem Rodeios)',
+        callAnchor20s: (company, contact) =>
+          `"${contact}, viva. Serei muito objetivo: sei que os diretores imobiliários têm os dias tomados por reuniões e escrituras. Identifiquei uma falha concreta onde a ${company} perde contactos de compradores todos os fins de semana. Mostro-lhe em 60 segundos."`,
+        whatsappIcebreaker: (company, contact) =>
+          `Olá ${contact}, sem rodeios: identifiquei onde os compradores qualificados da ${company} estão a desistir no primeiro contacto.\n\nSe lhe mostrar numa prévia de 40 segundos, tem oportunidade de espreitar?`,
+        whatsappFollowup24h: (company, contact) =>
+          `Olá ${contact}! Se quiser otimizar o fluxo de compradores, estarei por aqui. Bom trabalho com as vendas!`,
+        coldCallTeleprompter: (company, contact) =>
+          `"${contact}, mostro-lhe onde estão a perder compradores em 2 minutos. Fica melhor hoje ou amanhã?"`,
+        objectionKiller: (contact) =>
+          `"Sem problema! Se a vossa equipa já responder a 100% dos portais em menos de 1 minuto aos domingos, de facto o nosso sistema não faz falta!"`,
+        nichePainDiagnosis: 'Saturação de chamadas genéricas de fornecedores sem foco no negócio imobiliário real.'
+      }
+    }
+  },
+
+  // 10. ENERGIA SOLAR, FOTOVOLTAICO & CLIMATIZAÇÃO HVAC
+  solar_hvac: {
+    nicheId: 'solar_hvac',
+    nicheLabel: 'Empresas de Energia Solar & Climatização HVAC',
+    typicalDecisor: 'Diretor(a) Técnico(a) de Engenharia & Sócio',
+    corePain: 'Tempo excessivo gasto pela equipe técnica solicitando e calculando faturas de energia manualmente em vez de fechar instalações de alto valor.',
+    specificGaps: [
+      'Falta de triagem automática no WhatsApp com upload e leitura do consumo da fatura de luz',
+      'Engenheiros e consultores comerciais a perder horas com curiosos sem viabilidade financeira',
+      'Orçamentos enviados sem cadência de follow-up estruturada'
+    ],
+    tones: {
+      executivo_ceo: {
+        toneLabel: 'Direto ao Diretor de Engenharia / Sócio',
+        callAnchor20s: (company, contact, city) =>
+          `"${contact}, viva. Falo com o sócio responsável da ${company}? Serei direto: empresas de energia solar e climatização em ${city} perdem dezenas de horas por mês a pedir faturas de eletricidade manualmente por mensagem. Nós ligámos uma IA no WhatsApp que recebe a fatura do cliente, lê o consumo em kWh e calcula a poupança na hora antes de agendar a visita técnica. Gostaria de ver em 3 minutos?"`,
+        whatsappIcebreaker: (company, contact, city) =>
+          `Olá ${contact}, viva. Tudo bem?\n\nAcompanho as instalações da ${company} em ${city}. Sabemos que a vossa equipa comercial gasta imenso tempo a pedir contas de energia e a fazer contas manuais para contactos que depois não respondem.\n\nDesenvolvemos um fluxo inteligente no WhatsApp que recebe a foto ou PDF da fatura do cliente, extrai o consumo na hora e já agenda a visita do engenheiro.\n\nFaria sentido vermos uma demonstração rápida de 2 minutos esta semana?\n\nCom os melhores cumprimentos,\nGonçalo | CriaHub Portugal`,
+        whatsappFollowup24h: (company, contact) =>
+          `Olá ${contact}! Se tiver oportunidade de ver como a IA calcula a fatura solar automaticamente, avise-me por aqui!`,
+        coldCallTeleprompter: (company, contact) =>
+          `"${contact}, poupamos dezenas de horas aos seus consultores solares automatizando a leitura de faturas. Vale falarmos amanhã às 10h ou às 15h?"`,
+        objectionKiller: (contact) =>
+          `"Compreendo, ${contact}. A grande diferença é que os seus engenheiros deixam de fazer triagem básica e passam a ir apenas a visitas com clientes realmente viáveis e decididos."`,
+        nichePainDiagnosis: 'Sobrecarga da equipa de engenharia com triagem manual de faturas de luz.'
+      },
+      gatilho_gap: {
+        toneLabel: 'Gatilho de GAP Técnico',
+        callAnchor20s: (company, contact) =>
+          `"${contact}, viva. Notámos que a ${company} não tem simulador ágil de poupança no WhatsApp para quem chega por anúncios. Nós resolvemos isso em 48h."`,
+        whatsappIcebreaker: (company, contact) =>
+          `Olá ${contact}! Sabia que clientes solares que recebem a estimativa de poupança em menos de 5 minutos têm 4x mais propensão para fechar a instalação?\n\nCriámos o assistente ideal para a ${company}. Vale uma breve demonstração?`,
+        whatsappFollowup24h: (company, contact) =>
+          `Olá ${contact}! Disponível para enviar a prévia técnica quando for conveniente.`,
+        coldCallTeleprompter: (company, contact) =>
+          `"${contact}, aceleramos o fecho de orçamentos solares. Fica-lhe melhor quinta ou sexta?"`,
+        objectionKiller: (contact) =>
+          `"Com certeza: o sistema integra com o vosso WhatsApp atual sem alterar o processo dos engenheiros."`,
+        nichePainDiagnosis: 'Lentidão no envio da estimativa de poupança gerando perda de contratos solares.'
+      },
+      estudo_caso: {
+        toneLabel: 'Estudo de Caso Solar',
+        callAnchor20s: (company, contact, city) =>
+          `"${contact}, viva. Uma instaladora solar parceira em ${city} aumentou em 3x o volume de visitas técnicas qualificadas apenas automatizando o pedido da fatura de luz no WhatsApp. Quer ver como foi feito?"`,
+        whatsappIcebreaker: (company, contact, city) =>
+          `${contact}, boa tarde. Um exemplo prático do setor solar:\n\nUm parceiro aumentou em € 22.000 a faturação mensal ao reduzir o tempo de triagem de orçamentos solares de 2 dias para 5 minutos.\n\nConsigo apresentar-lhe em 5 minutos na quinta-feira?`,
+        whatsappFollowup24h: (company, contact) =>
+          `${contact}, tenho o resumo com os resultados da instaladora. Diga-me se quiser dar uma vista de olhos!`,
+        coldCallTeleprompter: (company, contact) =>
+          `"${contact}, são resultados reais de empresas de energia. Falamos quinta às 11h ou sexta às 14h?"`,
+        objectionKiller: (contact) =>
+          `"Compreendo: uma única instalação solar fechada cobre o custo de agência e IA de muitos meses!"`,
+        nichePainDiagnosis: 'Exigência de ROI comprovado em contratos de energia de elevado valor.'
+      },
+      quebra_padrao: {
+        toneLabel: 'Quebra de Padrão (Sem Rodeios)',
+        callAnchor20s: (company, contact) =>
+          `"${contact}, viva. Serei muito direto: sei que recebe chamadas de marketing a toda a hora. Identifiquei onde a ${company} perde cotações de energia solar todos os meses. Mostro-lhe em 60 segundos."`,
+        whatsappIcebreaker: (company, contact) =>
+          `Olá ${contact}, direto ao ponto: identifiquei onde os clientes de energia solar da ${company} desistem de enviar a fatura.\n\nSe lhe mostrar numa prévia de 40 segundos, tem oportunidade de ver?`,
+        whatsappFollowup24h: (company, contact) =>
+          `Olá ${contact}! Se quiser otimizar as cotações solares, estarei por aqui. Continuação de boas instalações!`,
+        coldCallTeleprompter: (company, contact) =>
+          `"${contact}, mostro-lhe onde estão a perder contratos solares em 2 minutos. Fica melhor hoje ou amanhã?"`,
+        objectionKiller: (contact) =>
+          `"Sem problema! Se a vossa equipa já fechar 100% das cotações que chegam, não precisa do nosso sistema!"`,
+        nichePainDiagnosis: 'Resistência a intermediários comerciais que não entendem de energia e engenharia.'
+      }
+    }
   }
 };
 
@@ -612,28 +825,58 @@ export function purifyPtPtText(text: string): string {
 export function detectLeadNiche(lead: Lead): NicheOutreachBlueprint {
   const text = `${lead.category || ''} ${lead.name || ''} ${lead.description || ''} ${lead.notes || ''}`.toLowerCase();
 
-  if (lead.isRealEstate || text.includes('imóve') || text.includes('proprietário') || text.includes('fsbo') || text.includes('arrendamento') || text.includes('moradia') || text.includes('apartamento') || text.includes('t1') || text.includes('t2') || text.includes('t3')) {
-    return NICHE_OUTREACH_BLUEPRINTS.fsbo_realestate;
+  // 1. Clínicas de Estética, Cirurgia Plástica, Dermatologia e Medicina Avançada
+  if (
+    text.includes('estétic') || text.includes('estetic') || text.includes('cirurg') || text.includes('dermat') ||
+    text.includes('harmoniz') || text.includes('oftalm') || text.includes('clínica médica') || text.includes('clinica medica') ||
+    text.includes('longevidade') || text.includes('médic') || text.includes('medic') || text.includes('laser')
+  ) {
+    return NICHE_OUTREACH_BLUEPRINTS.clinica_estetica;
   }
 
+  // 2. Clínicas Dentárias e Implantologia
   if (text.includes('odonto') || text.includes('dentista') || text.includes('dentária') || text.includes('implante') || text.includes('invisalign') || text.includes('ortodont') || text.includes('sorriso') || text.includes('clínica dentária')) {
     return NICHE_OUTREACH_BLUEPRINTS.odonto;
   }
 
-  if (text.includes('advoc') || text.includes('advogad') || text.includes('jurídic') || text.includes('juridic') || text.includes('direito') || text.includes('tributár') || text.includes('societár') || text.includes('ordem dos advogados')) {
-    return NICHE_OUTREACH_BLUEPRINTS.advocacia;
+  // 3. Imobiliárias Corporativas, Loteadoras & Incorporadoras
+  if (
+    text.includes('imobiliári') || text.includes('imobiliari') || text.includes('incorporad') || text.includes('promotora') ||
+    text.includes('remax') || text.includes('era ') || text.includes('century 21') || text.includes('porta da frente') ||
+    text.includes('engel') || text.includes('jll') || text.includes('sothebys') || text.includes('savills') ||
+    text.includes('lotead') || text.includes('construtor') || text.includes('vgv') || text.includes('decorado')
+  ) {
+    return NICHE_OUTREACH_BLUEPRINTS.imobiliaria_corporate;
   }
 
+  // 4. Imóveis de Particulares (FSBO Direct Owner)
+  if (lead.isRealEstate || text.includes('fsbo') || text.includes('proprietário') || text.includes('direto com proprietário') || text.includes('particular')) {
+    return NICHE_OUTREACH_BLUEPRINTS.fsbo_realestate;
+  }
+
+  // 5. Energia Solar & Climatização HVAC
+  if (text.includes('solar') || text.includes('fotovolt') || text.includes('climatiz') || text.includes('hvac') || text.includes('ar condicionado')) {
+    return NICHE_OUTREACH_BLUEPRINTS.solar_hvac;
+  }
+
+  // 6. Contabilidade & BPO Financeiro
   if (text.includes('contab') || text.includes('bpo') || text.includes('fiscal') || text.includes('tributos') || text.includes('auditoria') || text.includes('occ') || text.includes('irc') || text.includes('iva')) {
     return NICHE_OUTREACH_BLUEPRINTS.contabilidade;
   }
 
-  if (text.includes('loja') || text.includes('ecom') || text.includes('retalho') || text.includes('roupa') || text.includes('calcado') || text.includes('shopify') || text.includes('woocommerce') || text.includes('comércio')) {
+  // 7. Software & Tecnologia B2B
+  if (text.includes('software') || text.includes('saas') || text.includes('tech') || text.includes('tecnologia') || text.includes('startup') || text.includes('app') || text.includes('sistema') || text.includes('plataforma')) {
+    return NICHE_OUTREACH_BLUEPRINTS.saas_tech;
+  }
+
+  // 8. E-commerce & Retalho
+  if (text.includes('loja') || text.includes('ecom') || text.includes('retalho') || text.includes('roupa') || text.includes('calcado') || text.includes('shopify') || text.includes('woocommerce')) {
     return NICHE_OUTREACH_BLUEPRINTS.ecom_retalho;
   }
 
-  if (text.includes('software') || text.includes('saas') || text.includes('tech') || text.includes('tecnologia') || text.includes('startup') || text.includes('app') || text.includes('sistema') || text.includes('plataforma')) {
-    return NICHE_OUTREACH_BLUEPRINTS.saas_tech;
+  // 9. Advocacia & Direito (somente se estritamente jurídico corporativo)
+  if (text.includes('advoc') || text.includes('advogad') || text.includes('jurídic') || text.includes('juridic') || text.includes('direito') || text.includes('tributár') || text.includes('societár') || text.includes('ordem dos advogados')) {
+    return NICHE_OUTREACH_BLUEPRINTS.advocacia;
   }
 
   return NICHE_OUTREACH_BLUEPRINTS.b2b_geral;

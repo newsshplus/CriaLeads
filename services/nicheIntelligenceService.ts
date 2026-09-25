@@ -582,63 +582,123 @@ export const NICHE_INTELLIGENCE_PROFILES: NicheProfile[] = [
     }
   },
   {
-    id: 'advocacia_juridico',
-    keywords: ['advocacia', 'advogado', 'juridico', 'jurídico', 'direito', 'escritorio', 'tributario', 'tributário', 'societario', 'societário', 'trabalhista'],
-    categoryNames: ['Escritório de Advocacia Empresarial & Tributária', 'Sociedade de Advogados & Consultoria Societária', 'Advocacia Trabalhista Patronal & Contratos', 'Boutique Jurídica de Direito Médico & M&A', 'Advocacia Imobiliária & Patrimonial'],
+    id: 'energia_solar_hvac',
+    keywords: ['solar', 'energia solar', 'fotovoltaic', 'fotovoltaica', 'painel solar', 'inversor', 'climatizacao', 'climatização', 'hvac', 'refrigeracao', 'refrigeração', 'eficiencia energetica', 'eficiência energética'],
+    categoryNames: ['Engenharia Solar & Projetos Fotovoltaicos', 'Empresa de Energia Solar & Autoconsumo', 'Climatização Central & HVAC Corporativo', 'Instaladora Fotovoltaica Residencial & Comercial', 'Engenharia de Eficiência Energética'],
     companyNameTemplates: (city, sub) => [
-      `Carvalho, Silveira & Mendonça Advogados`,
-      `Vargas & Fontes Sociedade de Advogados`,
-      `Albuquerque & Brandão Advocacia Empresarial`,
-      `Prado & Castilho Consultoria Jurídica Tributária`,
-      `Menezes & Vasconcelos Direito Corporativo`,
-      `Duarte, Nogueira & Associados`,
-      `Vanguard Law Advocacia & Compliance`,
-      `LexGroup Consultoria Jurídica Especializada`,
-      `Pinheiro & Montoro Advocacia Empresarial`,
-      `Fontes & Cavalcanti Sociedade de Advogados`
+      `Solux Energia Solar & Engenharia`,
+      `EcoVolt Soluções Fotovoltaicas`,
+      `PrimeSolar Engenharia & Projetos`,
+      `SunPower Climatização & Fotovoltaico`,
+      `Nexus Energia Limpa ${city}`,
+      `Vanguard Solar & Eficiência Energética`,
+      `Helios Energia Fotovoltaica ${city}`,
+      `Aliança Engenharia Solar & HVAC`,
+      `Potência Solar & Sustentabilidade`,
+      `InovaSolar Projetos de Energia`
     ],
     roles: [
-      { title: 'Sócio-Administrador & Managing Partner (OAB)', category: 'DONO_CEO_SOCIO' },
-      { title: 'Sócio Sênior de Prática Tributária', category: 'DONO_CEO_SOCIO' },
-      { title: 'Diretor Jurídico & Operações', category: 'GERENTE_DIRETOR' },
-      { title: 'Head de Novos Negócios & Relações Institucionais', category: 'HEAD_COMERCIAL' }
+      { title: 'Sócio-Diretor de Engenharia & Operações', category: 'DONO_CEO_SOCIO' },
+      { title: 'Diretor Comercial & Novos Contratos', category: 'HEAD_COMERCIAL' },
+      { title: 'Gerente Geral de Obras & Instalações', category: 'GERENTE_DIRETOR' },
+      { title: 'Head de Vendas & Dimensionamento Técnico', category: 'HEAD_COMERCIAL' }
     ],
     pains: [
-      'Prospecção de novos clientes empresariais excessivamente dependente de indicações boca-a-boca sem previsibilidade',
-      'Demora de mais de 48h na qualificação de consultas e elaboração de propostas de honorários para empresas',
-      'Dificuldade de posicionar a banca de advogados como autoridade de referência nos temas de maior rentabilidade (M&A, Tributário, Recuperação Judicial)'
+      'Perda de até 40% das cotações por demora de mais de 30 minutos para analisar faturas de energia e enviar a estimativa inicial no WhatsApp',
+      'Equipe técnica sobrecarregada elaborando orçamentos para curiosos com faturas baixas em vez de focar em projetos comerciais de alto ticket',
+      'Comerciais de campo sem acompanhamento automatizado de propostas entregues, gerando esfriamento de contratos de R$ 25.000 a R$ 150.000'
     ],
     keyFlaws: [
-      'Site institucional puramente descritivo sem artigos técnicos que ranqueiem no Google para buscas de teses tributárias e empresariais',
-      'Ausência de CRM jurídico para monitorar o pipeline de propostas em aberto e histórico de negociações',
-      'Falta de estratégia ativa de relacionamento no LinkedIn com diretores financeiros (CFOs) e CEOs da região'
+      'Sem triagem inteligente no WhatsApp para upload e leitura de conta de luz por IA em segundos',
+      'Campanhas de tráfego direcionando para formulários estáticos em vez de fluxo conversacional rápido',
+      'Falta de CRM com alerta de follow-up para propostas comerciais sem resposta há mais de 48h'
     ],
     digitalGaps: [
-      'Sem funil estruturado de captação de decisores B2B via LinkedIn X-Ray e Google Search',
-      'Website institucional sem página dedicada por especialidade com tempo de resposta do servidor (TTFB) superior a 1.6s',
-      'Sem régua de conteúdo técnico para nutrir clientes atuais com novidades legislativas'
+      'Calculadora de economia solar e payback ausente no celular dos visitantes do site',
+      'Website institucional com carregamento lento no mobile (LCP > 4.2s)',
+      'Falta de qualificação prévia de padrão trifásico e gasto mensal de energia'
     ],
-    tools: ['Projuris', 'LegalOne / Astrea', 'WordPress', 'Google Analytics 4', 'LinkedIn Sales Navigator', 'HubSpot'],
-    crmPlatform: 'Projuris / Astrea / HubSpot',
-    averageTicket: 'R$ 5.000 a R$ 35.000 / mês em contratos de assessoria contínua',
-    budgetMonthly: 'R$ 25.000 a R$ 80.000 / mês',
-    annualRevenue: 'R$ 4.5M a R$ 22M / ano',
-    urgencyFactors: ['Mudanças na legislação tributária e trabalhista', 'Busca por expansão da carteira de clientes corporativos'],
+    tools: ['SolarMarket', 'PipeRun', 'WordPress', 'Google Analytics 4', 'Meta Pixel CAPI', 'RD Station'],
+    crmPlatform: 'PipeRun / SolarMarket / HubSpot',
+    averageTicket: 'R$ 20.000 a R$ 120.000 por instalação comercial/residencial',
+    budgetMonthly: 'R$ 20.000 a R$ 60.000 / mês',
+    annualRevenue: 'R$ 3.5M a R$ 18M / ano',
+    urgencyFactors: ['Aumento nas tarifas de energia elétrica na região', 'Metas semestrais de homologação de potência'],
     socialPostThemes: [
-      { format: 'Carrossel Educativo', topic: 'Reforma Tributária: 3 Ações Imediatas para Proteger o Fluxo de Caixa da Sua Empresa', engagementTier: 'ALTO' },
-      { format: 'Artigo / Imagem', topic: 'Análise de Risco Contratual em Fusões e Aquisições (M&A)', engagementTier: 'MEDIO' },
-      { format: 'Post Institucional', topic: 'Foto dos sócios no escritório parabenizando pelo Dia do Advogado', engagementTier: 'BAIXO' }
+      { format: 'Vídeo / Reels', topic: 'Instalação de usina solar em galpão comercial: Redução de R$ 4.200/mês para taxa mínima', engagementTier: 'ALTO' },
+      { format: 'Carrossel Educativo', topic: 'Como calcular o payback real do sistema solar fotovoltaico em 2026', engagementTier: 'MEDIO' },
+      { format: 'Post Estático', topic: 'Foto da equipe de engenheiros com equipamentos de segurança no telhado', engagementTier: 'BAIXO' }
     ],
     pageSpeedBottlenecks: [
-      'Hospedagem compartilhada com TTFB lento (> 1.8s) para carregar o primeiro byte',
-      'Fontes personalizadas pesadas (Google Fonts não cacheadas) atrasando a renderização do texto',
-      'Imagens da equipe em alta definição sem compressão moderna'
+      'Imagens pesadas de projetos e obras sem otimização WebP travando a primeira dobra',
+      'Scripts de chat estático e formulários bloqueando a renderização no 4G',
+      'Hospedagem sem compressão Brotli e sem CDN ativa'
     ],
     criahubPitchTalkingPoints: {
-      pageSpeed: 'O site do escritório leva 4.9s para carregar. Diretores e CFOs que pesquisam sobre teses tributárias no celular fecham a aba antes de ler o artigo.',
-      chatbot: 'Criamos uma triagem jurídica discreta e elegante que qualifica o porte da empresa antes de agendar com os sócios.',
-      social: 'Posicionamos os sócios no LinkedIn como as vozes mais respeitadas de direito empresarial e tributário do estado.',
-      traffic: 'Campanhas cirúrgicas de Google Search para palavras-chave de alta intenção com ticket mínimo estabelecido.'
+      pageSpeed: 'Compradores de energia solar comparam no celular com a fatura na mão. Um site que abre instantaneamente com simulador de economia retém o lead na hora.',
+      chatbot: 'Nosso Agente IA recebe a foto da fatura de luz no WhatsApp, extrai o consumo em kWh e envia a economia estimada em 20 segundos.',
+      social: 'Publicamos casos reais de usinas homologadas com depoimentos de empresários satisfeitos.',
+      traffic: 'Campanhas de precisão segmentadas em donos de empresas, galpões e condomínios de alto consumo.'
+    }
+  },
+  {
+    id: 'veiculos_premium_concessionaria',
+    keywords: ['veiculo', 'veículo', 'veiculos', 'veículos', 'concessionaria', 'concessionária', 'blindado', 'blindados', 'seminovo', 'seminovos', 'auto', 'motors', 'nautica', 'náutica', 'barcos', 'lanchas', 'yachts'],
+    categoryNames: ['Concessionária de Veículos Premium & Blindados', 'Boutique Automotiva de Alto Padrão', 'Loja de Carros Importados & Esportivos', 'Concessionária & Náutica de Luxo', 'Centro Automotivo Especializado em Superesportivos'],
+    companyNameTemplates: (city, sub) => [
+      `PrimeMotors Veículos Premium & Blindados`,
+      `Apex Motors Importados ${city}`,
+      `Vanguard Luxury Cars & Seminovos`,
+      `Prestige Automotiva & Blindagens`,
+      `EuroMotors Centro Automotivo Premium`,
+      `Grand Motors Seleção Especial ${city}`,
+      `NauticaPrime Lanchas & Embarcações`,
+      `Elite Motors Boutique de Veículos`,
+      `Diamond Motors Veículos Exclusivos`,
+      `Imperial Motors ${city}`
+    ],
+    roles: [
+      { title: 'Sócio-Fundador & Diretor Geral', category: 'DONO_CEO_SOCIO' },
+      { title: 'Diretor Comercial & Vendas Premium', category: 'HEAD_COMERCIAL' },
+      { title: 'Gerente Geral do Showroom', category: 'GERENTE_DIRETOR' },
+      { title: 'Head de Negócios & Avaliação de Seminovos', category: 'HEAD_COMERCIAL' }
+    ],
+    pains: [
+      'Compradores de veículos de luxo esperam atendimento em menos de 15 segundos com condições de pagamento e avaliação de seminovo',
+      'Leads de portais automotivos e anúncios que chegam à noite esfriam e fecham com outra loja se não forem atendidos na hora',
+      'Vendedores sobrecarregados com contatos curiosos sem capacidade de compra'
+    ],
+    keyFlaws: [
+      'Estoque digital desatualizado sem simulador de financiamento e reserva direta no WhatsApp',
+      'Falta de agente 24/7 para pré-qualificar ficha de financiamento e agendar test-drives VIP',
+      'Ausência de régua de pós-venda para incentivar recompra de veículos a cada 18 meses'
+    ],
+    digitalGaps: [
+      'Fotos de alta resolução pesando mais de 10MB bloqueando a visualização rápida do estoque no celular',
+      'Sem integração de Meta Pixel CAPI para rastrear cliques em modelos específicos',
+      'Falta de tour virtual e vídeo 360° do interior dos veículos'
+    ],
+    tools: ['AutoManager', 'DealerNet', 'WordPress', 'Google Analytics 4', 'Meta Pixel CAPI', 'RD Station'],
+    crmPlatform: 'AutoManager / DealerNet / RD Station',
+    averageTicket: 'R$ 120.000 a R$ 650.000 por veículo',
+    budgetMonthly: 'R$ 30.000 a R$ 90.000 / mês',
+    annualRevenue: 'R$ 15M a R$ 80M / ano',
+    urgencyFactors: ['Giro rápido de estoque com alto capital imobilizado', 'Metas de vendas mensais'],
+    socialPostThemes: [
+      { format: 'Vídeo / Reels', topic: 'Apresentação detalhada de Porsche/BMW recém-chegada ao estoque com som do motor', engagementTier: 'ALTO' },
+      { format: 'Carrossel Educativo', topic: 'Vantagens da blindagem Nível III-A com vidros mais leves em 2026', engagementTier: 'MEDIO' },
+      { format: 'Post Estático', topic: 'Foto do showroom com iluminação especial e aviso de novos modelos', engagementTier: 'BAIXO' }
+    ],
+    pageSpeedBottlenecks: [
+      'Galeria de fotos do estoque sem compressão travando em aparelhos móveis',
+      'Scripts de players de vídeo embutidos sem carregamento lazy',
+      'Servidor sem suporte a HTTP/2 e sem cache de catálogo'
+    ],
+    criahubPitchTalkingPoints: {
+      pageSpeed: 'Compradores de veículos premium exigem sofisticação imediata. Um catálogo que abre em 1 segundo e tem fotos nítidas multiplica visitas ao showroom.',
+      chatbot: 'Nosso Agente IA qualifica o veículo usado na troca, faz simulação preliminar e agenda o test-drive em menos de 20 segundos.',
+      social: 'Criamos vídeos cinematográficos dos veículos que geram desejo imediato e ativam o público de alta renda da região.',
+      traffic: 'Campanhas hiper-focadas nos condomínios e bairros mais nobres da cidade com raio geográfico restrito.'
     }
   },
   {
@@ -885,10 +945,13 @@ const DEFAULT_FALLBACK_NICHE: NicheProfile = {
 
 /**
  * Identifica o melhor perfil de inteligência de nicho para a palavra-chave informada
+ * Para buscas automáticas/gerais, distribui dinamicamente entre os nichos de alto ticket reais
  */
-export function getMatchedNicheProfile(keyword: string): NicheProfile {
+export function getMatchedNicheProfile(keyword: string, index: number = 0): NicheProfile {
   const k = (keyword || '').toLowerCase().trim();
-  if (!k || k === 'auto') return DEFAULT_FALLBACK_NICHE;
+  if (!k || k === 'auto' || k.includes('alto ticket') || k.includes('todas') || k.includes('empresas b2b') || k.includes('serviços')) {
+    return NICHE_INTELLIGENCE_PROFILES[index % NICHE_INTELLIGENCE_PROFILES.length];
+  }
 
   for (const profile of NICHE_INTELLIGENCE_PROFILES) {
     if (profile.keywords.some(word => k.includes(word))) {
@@ -946,7 +1009,7 @@ export function generateRealisticLead(
   roleFilter?: string,
   isPt: boolean = false
 ): Lead {
-  const niche = getMatchedNicheProfile(keyword);
+  const niche = getMatchedNicheProfile(keyword, index);
   const geo = getRealGeoData(city, isPt ? 'PT' : 'BR');
   const currencySymbol = isPt ? '€' : 'R$';
 

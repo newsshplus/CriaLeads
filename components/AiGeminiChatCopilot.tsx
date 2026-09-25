@@ -78,7 +78,7 @@ function getCountryConfig(code?: string): CountryData {
       b2bNiches: [
         { name: 'Clínicas Dentais', keyword: 'clínica dental', icon: '🦷', desc: 'Dentistas, ortodontia e implantes' },
         { name: 'Gimnasios & Fitness', keyword: 'gimnasio fitness', icon: '🏋️', desc: 'Academias, crossfit e pilates' },
-        { name: 'Bufetes de Abogados', keyword: 'bufete de abogados', icon: '⚖️', desc: 'Advocacia corporativa e civil' },
+        { name: 'Energía Solar & HVAC', keyword: 'energia solar climatizacion', icon: '☀️', desc: 'Instalaciones solares y climatización' },
         { name: 'Clínicas de Estética', keyword: 'clínica estética', icon: '✨', desc: 'Estética facial e dermatologia' },
         { name: 'Restaurantes Gourmet', keyword: 'restaurante gourmet', icon: '🍽️', desc: 'Alta gastronomia e hotelaria' }
       ],
@@ -106,7 +106,7 @@ function getCountryConfig(code?: string): CountryData {
       b2bNiches: [
         { name: 'Clínicas Odontológicas', keyword: 'clínica odontológica', icon: '🦷', desc: 'Dentistas, implantes e estética dental' },
         { name: 'Academias & Crossfit', keyword: 'academia fitness', icon: '🏋️', desc: 'Centros esportivos e studios' },
-        { name: 'Escritórios de Advocacia', keyword: 'escritório de advocacia', icon: '⚖️', desc: 'Direito tributário, cível e trabalhista' },
+        { name: 'Energia Solar & HVAC', keyword: 'energia solar fotovoltaica', icon: '☀️', desc: 'Engenharia fotovoltaica e climatização' },
         { name: 'Clínicas de Estética', keyword: 'clínica de estética', icon: '✨', desc: 'Harmonização e dermatologia' },
         { name: 'Construção Civil & Obras', keyword: 'engenharia civil construcao', icon: '🏗️', desc: 'Empreiteiras e arquitetura' }
       ],
@@ -136,7 +136,7 @@ function getCountryConfig(code?: string): CountryData {
     b2bNiches: [
       { name: 'Clínicas Dentárias', keyword: 'clínica dentária', icon: '🦷', desc: 'Médicos dentistas, ortodontia e implantes' },
       { name: 'Ginásios & Fitness', keyword: 'ginásio fitness', icon: '🏋️', desc: 'Clubes de fitness, pilates e personal' },
-      { name: 'Escritórios de Advocacia', keyword: 'escritório de advocacia', icon: '⚖️', desc: 'Sociedades de advogados e consultoria' },
+      { name: 'Energia Solar & HVAC', keyword: 'energia solar fotovoltaica', icon: '☀️', desc: 'Autoconsumo solar e climatização' },
       { name: 'Clínicas de Estética', keyword: 'clínica de estética', icon: '✨', desc: 'Medicina estética e cuidados avançados' },
       { name: 'Restauração & Gastronomia', keyword: 'restaurante', icon: '🍽️', desc: 'Restaurantes, cafetarias e hotelaria' },
       { name: 'Engenharia & Arquitetura', keyword: 'gabinete arquitetura engenharia', icon: '🏗️', desc: 'Projetos, reabilitação e construção' }

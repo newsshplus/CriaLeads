@@ -51,8 +51,8 @@ RESPONDA EXCLUSIVAMENTE UM ARRAY JSON VÁLIDO no seguinte formato:
     "verified": true,
     "reliabilityScore": 95,
     "dataQualityRating": "ALTA_CONFIABILIDADE",
-    "verificationNotes": "Empresa real com presença ativa no Google Maps e site funcional. Diagnóstico de falta de SDR no WhatsApp é consistente com o alto volume de pacientes.",
-    "recommendedStrategy": "Abordar via WhatsApp destacando a perda de leads fora do horário comercial com demonstração direta do agente de agendamento."
+    "verificationNotes": "Empresa real com presença ativa no Google Maps e canal de contato funcional. Diagnóstico de falta de triagem rápida no WhatsApp é consistente com o segmento comercial da empresa.",
+    "recommendedStrategy": "Abordar via WhatsApp destacando a perda de contatos comerciais fora do horário comercial com demonstração direta do agente de qualificação e agendamento."
   }
 ]`;
 

@@ -12,6 +12,7 @@ import { extractCleanBrandName } from '../services/freeB2bProspectorService';
 import { resolveRealCompanyWebsite } from '../services/nicheIntelligenceService';
 import { openWhatsApp1Click } from '../services/whatsAppOutreachHelper';
 import { openGmailInNewTab } from '../services/ptPtOutreachService';
+import { detectLeadNicheFamily } from '../services/aiDecisionMatcherService';
 
 interface HighTicketDossierViewProps {
   lead: Lead;
@@ -71,27 +72,43 @@ export const HighTicketDossierView: React.FC<HighTicketDossierViewProps> = ({
   const clientsNeededToBreakEven = Math.max(1, Math.ceil(currentPlanPrice / simulatedTicket));
 
   const cleanPhone = (decisor.directPhone || lead.phone || '').replace(/\D/g, '');
+  const nicheFamily = detectLeadNicheFamily(lead);
+
   const decisorFirstName = decisor.name && !decisor.name.toLowerCase().includes('diretor') && !decisor.name.toLowerCase().includes('administra')
     ? decisor.name.split(' ')[0]
-    : 'Doutor(a)';
+    : (nicheFamily === 'HEALTH_CLINIC' ? 'Doutor(a)' : 'Diretor(a)');
+
+  const clientTerm = nicheFamily === 'HEALTH_CLINIC' 
+    ? 'pacientes particulares' 
+    : nicheFamily === 'REAL_ESTATE' 
+      ? 'compradores e investidores' 
+      : nicheFamily === 'SOLAR_HVAC' 
+        ? 'projetos de energia solar' 
+        : 'clientes de alto padrão';
+
+  const transactionTerm = nicheFamily === 'HEALTH_CLINIC' 
+    ? 'consultas e procedimentos' 
+    : nicheFamily === 'REAL_ESTATE' 
+      ? 'visitas e propostas imobiliárias' 
+      : 'novos orçamentos e contratos fechados';
 
   // Scripts de Prospecção ProspecPT & Alta Conversão
   const waCuriosityStep1 = `Olá ${decisorFirstName}! 👋 Posso fazer-te uma pergunta rápida sobre a ${cleanBrand}?`;
   
-  const waCuriosityStep2 = `Olá ${decisorFirstName}! Notei o trabalho de excelência que a ${cleanBrand} desenvolve em ${lead.city || 'Cascais'}.\n\nAnalisámos a vossa presença e identificámos que clínicas e empresas do vosso porte perdem cerca de 35% das consultas e orçamentos particulares simplesmente por não terem triagem instantânea com IA no WhatsApp fora de horas (noites e fins de semana) e um funil de tráfego pago focado em alto padrão.\n\nEstruturámos um plano executivo de ${currencySymbol}${planElitePrice}/mês que se paga logo no primeiro cliente novo. Faria sentido batermos 10 minutos na quinta-feira para vos mostrar os números exatos?`;
+  const waCuriosityStep2 = `Olá ${decisorFirstName}! Notei o trabalho de excelência que a ${cleanBrand} desenvolve em ${lead.city || 'Cascais'}.\n\nAnalisámos a vossa presença e identificámos que empresas do vosso segmento perdem cerca de 35% de ${clientTerm} simplesmente por não terem triagem instantânea com IA no WhatsApp fora de horas (noites e fins de semana) e um funil digital focado em alto padrão.\n\nEstruturámos um plano executivo de ${currencySymbol}${planElitePrice}/mês que se paga logo no primeiro cliente novo. Faria sentido batermos 10 minutos na quinta-feira para vos mostrar os números exatos?`;
 
-  const coldCallSecretaryScript = `Olá, com os meus cumprimentos! O meu nome é [Seu Nome]. É um contacto direto com o(a) ${decisor.name} sobre um relatório de novos clientes particulares na região de ${lead.city || 'Cascais'}. O(a) Dr(a). está disponível agora ou prefere que ligue no telemóvel direto?`;
+  const coldCallSecretaryScript = `Olá, com os meus cumprimentos! O meu nome é [Seu Nome]. É um contacto direto com o(a) ${decisor.name} sobre um relatório de novos ${clientTerm} na região de ${lead.city || 'Cascais'}. O(a) ${nicheFamily === 'HEALTH_CLINIC' ? 'Dr(a).' : 'Diretor(a)'} está disponível agora ou prefere que ligue no telemóvel direto?`;
 
-  const coldCallDecisorScript = `Viva ${decisorFirstName}, daqui fala [Seu Nome]. Acompanho a reputação de excelência da ${cleanBrand} em ${lead.city || 'Cascais'}. Serei direto em respeito ao seu tempo: analisámos que a vossa procura de alto padrão pode crescer entre 20% a 40% este mês unindo tráfego pago focado em particulares com atendimento instantâneo por IA no WhatsApp. Temos um projeto sob medida de ${currencySymbol}${currentPlanPrice}/mês que se paga já no primeiro ou segundo novo cliente. Faria sentido vermos isso em 10 minutos no Google Meet amanhã às 10h30 ou às 14h30?`;
+  const coldCallDecisorScript = `Viva ${decisorFirstName}, daqui fala [Seu Nome]. Acompanho a reputação de excelência da ${cleanBrand} em ${lead.city || 'Cascais'}. Serei direto em respeito ao seu tempo: analisámos que a vossa procura de alto padrão pode crescer entre 20% a 40% este mês unindo tráfego pago qualificado com atendimento instantâneo por IA no WhatsApp. Temos um projeto sob medida de ${currencySymbol}${currentPlanPrice}/mês que se paga já no primeiro ou segundo novo cliente. Faria sentido vermos isso em 10 minutos no Google Meet amanhã às 10h30 ou às 14h30?`;
 
-  const coldEmailSubject = `${decisorFirstName ? decisorFirstName + ', ' : ''}novos clientes de alto padrão na ${cleanBrand}`;
-  const coldEmailBody = `Viva ${decisor.name},\n\nAcompanho com admiração o posicionamento e o rigor técnico que a ${cleanBrand} construiu em ${lead.city || 'Cascais'}.\n\nIdentificámos que empresas com a vossa reputação na região costumam perder clientes particulares aos fins de semana e noites por falta de resposta imediata no WhatsApp, além de dependerem apenas de indicações boca a boca.\n\nEstruturámos uma máquina de aquisição que integra Tráfego Pago de Alta Conversão + Agente IA de Atendimento 24/7. O investimento (${currencySymbol}${currentPlanPrice}/mês) paga-se logo no primeiro novo cliente conquistado.\n\nFaria sentido vermos um diagnóstico visual de 10 minutos nesta quinta-feira às 10h15?\n\nCom os melhores cumprimentos,\nEquipa de Expansão & SDR`;
+  const coldEmailSubject = `${decisorFirstName ? decisorFirstName + ', ' : ''}novos ${clientTerm} na ${cleanBrand}`;
+  const coldEmailBody = `Viva ${decisor.name},\n\nAcompanho com admiração o posicionamento e o rigor técnico que a ${cleanBrand} construiu em ${lead.city || 'Cascais'}.\n\nIdentificámos que empresas com a vossa reputação na região costumam perder ${clientTerm} aos fins de semana e noites por falta de resposta imediata no WhatsApp, além de dependerem apenas de indicações boca a boca.\n\nEstruturámos uma máquina de aquisição que integra Tráfego Pago de Alta Conversão + Agente IA de Atendimento 24/7. O investimento (${currencySymbol}${currentPlanPrice}/mês) paga-se logo no primeiro novo cliente conquistado.\n\nFaria sentido vermos um diagnóstico visual de 10 minutos nesta quinta-feira às 10h15?\n\nCom os melhores cumprimentos,\nEquipa de Expansão & SDR`;
 
   // Matriz de Objeções de Fechamento
   const objections = [
     {
       obj: "Já temos agência de marketing ou fazemos internamente",
-      response: `Excelente saber que já investem na marca, ${decisorFirstName}! O nosso trabalho não substitui a vossa agência de branding. Nós operamos a engenharia de tráfego de alta precisão e a IA de SDR no WhatsApp para garantir que cada euro investido se transforme em consultas e vendas reais, fechando as brechas que as agências tradicionais costumam ignorar. Vale analisarmos 10 minutos para compararem os números?`
+      response: `Excelente saber que já investem na marca, ${decisorFirstName}! O nosso trabalho não substitui a vossa agência de branding. Nós operamos a engenharia de tráfego de alta precisão e a IA de SDR no WhatsApp para garantir que cada investimento se transforme em ${transactionTerm}, fechando as brechas que as agências tradicionais costumam ignorar. Vale analisarmos 10 minutos para compararem os números?`
     },
     {
       obj: "Não temos verba ou orçamento para investir agora",
@@ -407,7 +424,7 @@ Decisor:
               {currencySymbol}{planProPrice}<span className="text-xs text-slate-500 font-medium"> / mês</span>
             </div>
             <p className="text-xs text-slate-600 mt-2">
-              Ideal para empresas que querem fluxo contínuo de 15 a 40 novos orçamentos/pacientes particulares todo mês.
+              Ideal para empresas que querem fluxo contínuo de 15 a 40 novos {nicheFamily === 'HEALTH_CLINIC' ? 'pacientes particulares' : nicheFamily === 'REAL_ESTATE' ? 'compradores e investidores' : 'orçamentos de alto padrão'} todo mês.
             </p>
 
             <ul className="mt-4 space-y-2 text-xs text-slate-700">
@@ -645,7 +662,11 @@ Decisor:
                 <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded">Risco Crítico</span>
               </div>
               <p className="text-xs text-slate-700">
-                Mais de 40% das pessoas pesquisam serviços de saúde e estética entre 19h e 23h ou em finais de semana. Sem um atendente virtual com IA para responder em menos de 15 segundos, o paciente vai direto para a próxima clínica.
+                {nicheFamily === 'HEALTH_CLINIC'
+                  ? 'Mais de 40% das pessoas pesquisam procedimentos médicos e estéticos entre 19h e 23h ou em finais de semana. Sem um atendente virtual com IA para responder em menos de 15 segundos, o paciente vai direto para a próxima clínica.'
+                  : nicheFamily === 'REAL_ESTATE'
+                  ? 'Mais de 50% dos interessados em imóveis mandam mensagens à noite ou no domingo. Sem atendimento virtual com IA para responder em 15 segundos e enviar materiais do imóvel, o comprador busca outro corretor.'
+                  : 'Mais de 45% dos contatos comerciais chegam fora do horário padrão (noites e finais de semana). Sem resposta imediata em menos de 15 segundos, o cliente qualificado busca o próximo concorrente no Google.'}
               </p>
             </div>
             <div className="mt-3 pt-2 border-t border-slate-200 text-[11px] text-indigo-700 font-bold flex items-center justify-between">
