@@ -388,8 +388,8 @@ export const HIGH_TICKET_NICHES_BY_COUNTRY: Record<string, HighTicketNicheRecomm
 
 export const DEFAULT_RAPIDAPI_KEYS: [string, string, string] = [
   "f3fd7938b2msh23224581e117040p1d9903jsn150fc303f653",
-  "",
-  ""
+  "217aaf9c57mshbeccc815a9fea34p1f3f39jsn47f97de18757",
+  "217aaf9c57mshbeccc815a9fea34p1f3f39jsn47f97de18757"
 ];
 
 export const DEFAULT_ENRICHMENT_SYSTEM_PROMPT = `Você é o "Deep BANT & Tech-Stack Enricher", o agente supremo de inteligência de prospecção B2B autônoma de ALTO TICKET.
@@ -563,6 +563,10 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
   servicesDescription: "Agência de Automação de Inteligência Artificial, Criação de Sites Modernos 3.0, SDRs Autônomos de WhatsApp/Email, Integrações n8n/Make, CRM e Otimização de Processos de Vendas para empresas de Alto Ticket.",
   ticketMedio: "R$ 8.000 - R$ 35.000 / projeto (ou MRR de R$ 4.500/mês)",
   icpTarget: "Empresas com ticket médio elevado (Clínicas Premium, Escritórios de Advocacia, Incorporadoras, Indústrias B2B, Consultorias) que precisam modernizar sua presença digital e atendimento automatizado para fechar mais vendas.",
+  senderName: "Nivaldo Freitas",
+  senderRole: "Estrategista Digital & Consultoria Digital Independente",
+  useGenericSenderOnFirstContact: true,
+  rgpdOptOutNotice: "Aviso de Privacidade & RGPD: Esta comunicação destina-se estritamente ao âmbito profissional B2B. Caso não pretenda receber futuros contactos ou pretenda a eliminação imediata dos seus dados, responda a esta mensagem com a palavra 'STOP'. O seu endereço será automaticamente bloqueado no nosso sistema.",
   uvp: "Implementamos infraestrutura completa de presença digital moderna, automações inteligentes e agentes de IA no WhatsApp que multiplicam a conversão comercial sem aumentar o headcount.",
   solvedPains: [
     "Demora de horas para responder leads no WhatsApp e formulários, perdendo negócios para concorrentes",
@@ -633,6 +637,7 @@ export const DEFAULT_FILTERS = {
   intentPriority: 'all',
   originApi: 'all',
   roiVerdict: 'all',
+  highTicketOnly: false,
   searchQuery: ''
 } as const;
 
@@ -643,8 +648,8 @@ export const COUNTRY_CITIES: Record<string, string[]> = {
     "Campinas", "Ribeirão Preto", "Santos", "Joinville", "Londrina", "Vitória"
   ],
   "Portugal": [
-    "Lisboa", "Porto", "Braga", "Coimbra", "Aveiro", "Faro", "Funchal", 
-    "Guimarães", "Leiria", "Setúbal", "Cascais", "Sintra", "Viseu", "Oeiras"
+    "Lisboa", "Oeiras", "Paço de Arcos", "Cascais", "Sintra", "Porto", "Braga", 
+    "Coimbra", "Aveiro", "Faro", "Funchal", "Guimarães", "Leiria", "Setúbal", "Viseu"
   ],
   "Espanha": [
     "Madrid", "Barcelona", "Valencia", "Sevilla", "Málaga", "Bilbao", "Zaragoza"

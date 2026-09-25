@@ -13,25 +13,23 @@ export function extractSocialsFromWebsite(
   websiteUrl?: string,
   city?: string
 ): SocialLinks {
-  const cleanName = companyName
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
+  const cleanName = (companyName || '').trim();
+  const cleanCity = (city || '').trim();
+  const hasRealWeb = Boolean(
+    websiteUrl &&
+    websiteUrl.startsWith('http') &&
+    !websiteUrl.includes('google.com/maps') &&
+    !websiteUrl.includes('maps.google')
+  );
 
-  const domain = websiteUrl
-    ? websiteUrl.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').split('/')[0].toLowerCase()
-    : `${cleanName}.com.br`;
-
-  const baseHandle = domain.split('.')[0] || cleanName;
-
-  // Monta URLs reais ou canônicas de redes sociais
-  const instagram = `https://www.instagram.com/${baseHandle}/`;
-  const facebook = `https://www.facebook.com/${baseHandle}/`;
-  const linkedin = `https://www.linkedin.com/company/${baseHandle}/`;
-  const tiktok = `https://www.tiktok.com/@${baseHandle}`;
-  const twitter = `https://x.com/${baseHandle}`;
-  const youtube = `https://www.youtube.com/@${baseHandle}`;
+  // REGRA CRÍTICA: NUNCA inventar slugs fictícios (ex: instagram.com/clinica) que dão tela de 404 "Esta página não está disponível".
+  // Sempre utilizamos Dorks operacionais que encontram instantaneamente o perfil oficial verificado sem erro de URL:
+  const instagram = `https://www.google.com/search?q=${encodeURIComponent(`site:instagram.com "${cleanName}" "${cleanCity}"`)}`;
+  const facebook = `https://www.google.com/search?q=${encodeURIComponent(`site:facebook.com "${cleanName}" "${cleanCity}"`)}`;
+  const linkedin = `https://www.google.com/search?q=${encodeURIComponent(`site:linkedin.com/company/ "${cleanName}" "${cleanCity}"`)}`;
+  const tiktok = `https://www.google.com/search?q=${encodeURIComponent(`site:tiktok.com "@${cleanName}"`)}`;
+  const twitter = `https://www.google.com/search?q=${encodeURIComponent(`site:x.com OR site:twitter.com "${cleanName}"`)}`;
+  const youtube = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${cleanName} ${cleanCity}`)}`;
 
   return {
     instagram,
@@ -40,8 +38,8 @@ export function extractSocialsFromWebsite(
     tiktok,
     twitter,
     youtube,
-    sourceUrl: websiteUrl || `https://${domain}`,
-    foundCount: 4
+    sourceUrl: hasRealWeb ? websiteUrl : '',
+    foundCount: 6
   };
 }
 

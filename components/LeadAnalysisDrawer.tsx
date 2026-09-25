@@ -16,9 +16,15 @@ import {
   generateCriahubHighConversionOutreach 
 } from '../services/criahubSdrEngine';
 import { extractCleanBrandName } from '../services/freeB2bProspectorService';
+import { resolveRealCompanyWebsite } from '../services/nicheIntelligenceService';
 import { generateDecisionMakerCandidates, generateExecutiveSummaryReport } from '../services/aiDecisionMatcherService';
 import { generateInstantDigital360Audit, auditDigital360WithAi } from '../services/digitalAudit360Service';
 import { SeniorIcpQualificationView } from './SeniorIcpQualificationView';
+import { KitAlunoPanel } from './KitAlunoPanel';
+import { HighTicketDossierView } from './HighTicketDossierView';
+import { generateLocalizedHumanEmail, openGmailInNewTab, isPortugalTarget } from '../services/ptPtOutreachService';
+import { fetchCrunchbaseCompany, CrunchbaseCompanyData } from '../services/crunchbaseRapidApiService';
+import { searchYelpBusinesses, YelpBusinessResult } from '../services/yelpRapidApiService';
 
 interface LeadAnalysisDrawerProps {
   lead: Lead | null;
@@ -28,7 +34,7 @@ interface LeadAnalysisDrawerProps {
   onSaveLead?: (updatedLead: Lead) => void;
 }
 
-type TabType = 'icpMatrix' | 'digital360' | 'executive' | 'whatsapp' | 'videoloom' | 'email' | 'linkedin' | 'coldcall' | 'diagnosis' | 'fiscal' | 'socials' | 'matching';
+type TabType = 'highTicketDossier' | 'kitAluno' | 'icpMatrix' | 'digital360' | 'executive' | 'whatsapp' | 'videoloom' | 'email' | 'linkedin' | 'coldcall' | 'diagnosis' | 'fiscal' | 'socials' | 'matching' | 'crunchbase_yelp';
 
 export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
   lead,
@@ -41,15 +47,21 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
     if (onLeadUpdated) onLeadUpdated(updated);
     if (onSaveLead) onSaveLead(updated);
   };
-  const [activeTab, setActiveTab] = useState<TabType>('digital360');
+  const [activeTab, setActiveTab] = useState<TabType>('highTicketDossier');
   const [diagnosis, setDiagnosis] = useState<CriahubDiagnosis | null>(null);
   const [scripts, setScripts] = useState<CriahubOutreachScripts | null>(null);
   const [digitalAudit, setDigitalAudit] = useState<FullDigital360Audit | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAuditing360, setIsAuditing360] = useState<boolean>(false);
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
-  const [emailFormat, setEmailFormat] = useState<'aida' | 'pas' | 'plain'>('aida');
+  const [emailFormat, setEmailFormat] = useState<'human_pt' | 'aida' | 'pas' | 'plain'>('human_pt');
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+
+  // Estados dos novos enriquecimentos RapidAPI (Crunchbase 4 & Yelp Business Reviews)
+  const [crunchbaseData, setCrunchbaseData] = useState<CrunchbaseCompanyData | null>(null);
+  const [isLoadingCrunchbase, setIsLoadingCrunchbase] = useState<boolean>(false);
+  const [yelpData, setYelpData] = useState<YelpBusinessResult | null>(null);
+  const [isLoadingYelp, setIsLoadingYelp] = useState<boolean>(false);
 
   // Inicializa ou carrega a análise do lead
   useEffect(() => {
@@ -121,6 +133,33 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
     setTimeout(() => setCopiedItem(null), 2500);
   };
 
+  const handleFetchCrunchbase = async () => {
+    if (!lead) return;
+    setIsLoadingCrunchbase(true);
+    try {
+      const targetQuery = lead.website || lead.name;
+      const res = await fetchCrunchbaseCompany(targetQuery);
+      if (res.success && res.data) {
+        setCrunchbaseData(res.data);
+      }
+    } finally {
+      setIsLoadingCrunchbase(false);
+    }
+  };
+
+  const handleFetchYelp = async () => {
+    if (!lead) return;
+    setIsLoadingYelp(true);
+    try {
+      const res = await searchYelpBusinesses(lead.name, lead.city || 'Lisboa');
+      if (res.success && res.data && res.data.results && res.data.results.length > 0) {
+        setYelpData(res.data.results[0]);
+      }
+    } finally {
+      setIsLoadingYelp(false);
+    }
+  };
+
   const generate360ReportSummaryText = (audit: FullDigital360Audit, targetLead: Lead) => {
     return `*🔬 AUDITORIA DIGITAL 360° - ${targetLead.name.toUpperCase()}*\n\n` +
       `🌐 *1. WEBSITE & GOOGLE PAGESPEED:*\n` +
@@ -179,15 +218,23 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
     ? `https://wa.me/${cleanPhone}?text=${waMessageEncoded}`
     : `https://wa.me/?text=${waMessageEncoded}`;
 
-  const currentEmailBody = emailFormat === 'aida' 
-    ? scripts?.coldEmail.bodyAida 
-    : emailFormat === 'pas' 
-      ? scripts?.coldEmail.bodyPas 
-      : scripts?.coldEmail.plainText;
+  const localizedPtEmail = lead ? generateLocalizedHumanEmail(lead, lead.country) : null;
+
+  const currentEmailSubject = emailFormat === 'human_pt'
+    ? (localizedPtEmail?.subject || scripts?.coldEmail.subject || '')
+    : (scripts?.coldEmail.subject || '');
+
+  const currentEmailBody = emailFormat === 'human_pt'
+    ? (localizedPtEmail?.body || scripts?.coldEmail.plainText)
+    : emailFormat === 'aida' 
+      ? scripts?.coldEmail.bodyAida 
+      : emailFormat === 'pas' 
+        ? scripts?.coldEmail.bodyPas 
+        : scripts?.coldEmail.plainText;
 
   const mailtoUrl = emailToUse 
-    ? `mailto:${emailToUse}?subject=${encodeURIComponent(scripts?.coldEmail.subject || '')}&body=${encodeURIComponent(currentEmailBody || '')}`
-    : `mailto:?subject=${encodeURIComponent(scripts?.coldEmail.subject || '')}&body=${encodeURIComponent(currentEmailBody || '')}`;
+    ? `mailto:${emailToUse}?subject=${encodeURIComponent(currentEmailSubject)}&body=${encodeURIComponent(currentEmailBody || '')}`
+    : `mailto:?subject=${encodeURIComponent(currentEmailSubject)}&body=${encodeURIComponent(currentEmailBody || '')}`;
 
   // Resumo Executivo & Mapeamento de Candidatos a Decisores com Match %
   const execSummary = lead.executiveSummary || generateExecutiveSummaryReport(lead);
@@ -265,7 +312,7 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
             <button
               onClick={() => loadOrGenerateAnalysis(lead, true)}
               disabled={isLoading}
-              className="p-2 text-indigo-200 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1 text-xs"
+              className="p-2 text-indigo-200 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1 text-xs min-h-[40px]"
               title="Regenerar Análise com IA"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -273,9 +320,10 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+              className="min-h-[44px] min-w-[44px] p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-center"
+              aria-label="Fechar Gaveta de Análise"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </button>
           </div>
         </div>
@@ -327,8 +375,48 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
           </button>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex items-center gap-1 px-5 border-b border-slate-200 bg-white shrink-0 overflow-x-auto">
+        {/* Tab Selector (Scroll suave e responsivo para mobile e desktop) */}
+        <div className="flex items-center gap-1.5 px-3 sm:px-5 border-b border-slate-200 bg-white shrink-0 overflow-x-auto scrollbar-none touch-pan-x py-1">
+          {/* TAB 1: DOSSIÊ HIGH-TICKET (€599 - €997/MÊS) & PROPOSTA COMERCIAL */}
+          <button
+            onClick={() => setActiveTab('highTicketDossier')}
+            className={`py-2.5 px-3.5 border-b-2 font-black text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              activeTab === 'highTicketDossier' 
+                ? 'border-indigo-600 text-indigo-900 bg-indigo-50/90 shadow-2xs ring-1 ring-indigo-200/60' 
+                : 'border-transparent text-slate-700 hover:text-indigo-700 hover:bg-slate-50'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="font-black text-indigo-950">
+              💎 Dossiê High-Ticket (€599 - €997)
+            </span>
+            <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+              Proposta & ROI
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('kitAluno')}
+            className={`py-2.5 px-3.5 border-b-2 font-black text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              activeTab === 'kitAluno' 
+                ? 'border-indigo-600 text-indigo-900 bg-indigo-50/90 shadow-2xs ring-1 ring-indigo-200/60' 
+                : 'border-transparent text-slate-700 hover:text-indigo-700 hover:bg-slate-50'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="font-black text-indigo-950">
+              🎓 Kit Prospecção (Score & Sinais)
+            </span>
+            <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${
+              lead?.kitAluno?.score.classificacao === 'A' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+              lead?.kitAluno?.score.classificacao === 'B' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+              lead?.kitAluno?.score.classificacao === 'C' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+              'bg-slate-100 text-slate-700 border-slate-300'
+            }`}>
+              {lead?.kitAluno ? `Classe ${lead.kitAluno.score.classificacao} (${lead.kitAluno.score.score} pts)` : 'Prospecção'}
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveTab('icpMatrix')}
             className={`py-2.5 px-3.5 border-b-2 font-black text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
@@ -482,6 +570,18 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
             <Cpu className="w-3.5 h-3.5 text-violet-600" />
             <span>Cross-Match Engine</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('crunchbase_yelp')}
+            className={`py-2.5 px-3 border-b-2 font-bold text-xs flex items-center gap-1.5 transition-colors whitespace-nowrap ${
+              activeTab === 'crunchbase_yelp' 
+                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/30' 
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Building className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Crunchbase & Yelp B2B</span>
+          </button>
         </div>
 
         {/* Drawer Body Area */}
@@ -559,17 +659,54 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
 
               <div>
                 <span className="text-slate-400 block text-[10px] font-semibold">Website & Domínio:</span>
-                {lead.website ? (
-                  <a href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 font-semibold truncate">
-                    <Globe className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{lead.website.replace(/^https?:\/\//, '')}</span>
-                  </a>
-                ) : (
-                  <span className="text-slate-400 italic">Sem site mapeado</span>
-                )}
+                {(() => {
+                  const resolvedReal = resolveRealCompanyWebsite(lead.name, lead.city, lead.country);
+                  const effectiveWeb = (lead.website && lead.website.startsWith('http') && !lead.website.includes('google.com/maps')) ? lead.website : resolvedReal.website;
+                  const cleanBrand = extractCleanBrandName(lead.name);
+
+                  if (effectiveWeb) {
+                    return (
+                      <a href={effectiveWeb} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 font-semibold truncate" title={`Abrir Website: ${effectiveWeb}`}>
+                        <Globe className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{effectiveWeb.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                      </a>
+                    );
+                  }
+
+                  return (
+                    <a
+                      href={`https://www.google.com/search?q=${encodeURIComponent(`"${cleanBrand}" "${lead.city || ''}"`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-amber-700 hover:underline flex items-center gap-1 font-semibold text-xs"
+                      title="Buscar empresa no Google em 1 clique"
+                    >
+                      <Globe className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                      <span>Buscar no Google</span>
+                      <ExternalLink className="w-3 h-3 text-amber-500" />
+                    </a>
+                  );
+                })()}
               </div>
             </div>
           </div>
+
+          {/* TAB 1: DOSSIÊ HIGH-TICKET (€599 - €997/MÊS), PROPOSTA, CALCULADORA ROI & SCRIPTS */}
+          {activeTab === 'highTicketDossier' && (
+            <HighTicketDossierView 
+              lead={lead} 
+              onUpdateLead={syncLead} 
+              onClose={onClose} 
+            />
+          )}
+
+          {/* TAB KIT ALUNO: RÉGUA DE SCORE, SINAIS DE MARKETING, META ADS & NOMES */}
+          {activeTab === 'kitAluno' && (
+            <KitAlunoPanel 
+              lead={lead} 
+              country={lead.country || 'Portugal'} 
+            />
+          )}
 
           {/* TAB 0: MATRIZ SÊNIOR DE QUALIFICAÇÃO ICP (100 PTS) */}
           {activeTab === 'icpMatrix' && (
@@ -1567,6 +1704,13 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
                   </span>
                   <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-indigo-200 text-xs">
                     <button
+                      onClick={() => setEmailFormat('human_pt')}
+                      className={`px-2 py-0.5 rounded font-bold transition-all ${emailFormat === 'human_pt' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                      title="Português de Portugal sem qualquer brasileirismo, tom caloroso, próximo e de alta credibilidade"
+                    >
+                      🇵🇹 PT-PT Humano
+                    </button>
+                    <button
                       onClick={() => setEmailFormat('aida')}
                       className={`px-2 py-0.5 rounded font-bold transition-all ${emailFormat === 'aida' ? 'bg-indigo-600 text-white' : 'text-slate-600'}`}
                     >
@@ -1595,9 +1739,9 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
                     Assunto Selecionado (Intrigante & Curto):
                   </span>
                   <div className="flex items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-lg border border-slate-200 font-bold text-xs text-slate-900">
-                    <span>{scripts?.coldEmail.subject}</span>
+                    <span>{currentEmailSubject}</span>
                     <button
-                      onClick={() => handleCopy(scripts?.coldEmail.subject || '', 'subject')}
+                      onClick={() => handleCopy(currentEmailSubject, 'subject')}
                       className="text-xs text-indigo-600 hover:text-indigo-800 font-bold shrink-0 flex items-center gap-1"
                     >
                       {copiedItem === 'subject' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1620,12 +1764,25 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
                         {copiedItem === 'email-body' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>{copiedItem === 'email-body' ? 'Copiado!' : 'Copiar Corpo'}</span>
                       </button>
-                      <a
-                        href={mailtoUrl}
-                        className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-2xs"
+
+                      {/* Botão Direto Gmail (1-Click) */}
+                      <button
+                        type="button"
+                        onClick={() => openGmailInNewTab(emailToUse || '', currentEmailSubject, currentEmailBody || '')}
+                        className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
+                        title="Abre o Gmail no navegador já com Destinatário, Assunto e Mensagem preenchidos"
                       >
                         <Send className="w-3 h-3" />
-                        <span>Enviar por E-mail</span>
+                        <span>Abrir no Gmail (1-Click)</span>
+                      </button>
+
+                      <a
+                        href={mailtoUrl}
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                        title="Enviar via cliente padrão de e-mail (Mailto)"
+                      >
+                        <Mail className="w-3 h-3" />
+                        <span>Mailto</span>
                       </a>
                     </div>
                   </div>
@@ -2041,7 +2198,11 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                   <a
-                    href={lead.socials?.instagram || `https://www.instagram.com/${lead.name.toLowerCase().replace(/[^a-z0-9]/g, '')}/`}
+                    href={
+                      lead.socials?.instagram && lead.socials.instagram.startsWith('http')
+                        ? lead.socials.instagram
+                        : `https://www.google.com/search?q=${encodeURIComponent(`site:instagram.com "${lead.name}" "${lead.city || ''}"`)}`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className="p-3 bg-pink-50/50 hover:bg-pink-50 border border-pink-200/70 rounded-xl font-bold text-pink-900 flex items-center justify-between transition-colors"
@@ -2054,7 +2215,13 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
                   </a>
 
                   <a
-                    href={lead.socials?.linkedin || lead.decisionMaker.linkedin || `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(lead.name)}`}
+                    href={
+                      lead.decisionMaker?.linkedin && lead.decisionMaker.linkedin.startsWith('http')
+                        ? lead.decisionMaker.linkedin
+                        : lead.socials?.linkedin && lead.socials.linkedin.startsWith('http')
+                        ? lead.socials.linkedin
+                        : `https://www.google.com/search?q=${encodeURIComponent(`site:linkedin.com/company/ "${lead.name}" "${lead.city || ''}"`)}`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className="p-3 bg-sky-50/50 hover:bg-sky-50 border border-sky-200/70 rounded-xl font-bold text-sky-900 flex items-center justify-between transition-colors"
@@ -2067,7 +2234,11 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
                   </a>
 
                   <a
-                    href={lead.socials?.facebook || `https://www.facebook.com/${lead.name.toLowerCase().replace(/[^a-z0-9]/g, '')}/`}
+                    href={
+                      lead.socials?.facebook && lead.socials.facebook.startsWith('http')
+                        ? lead.socials.facebook
+                        : `https://www.google.com/search?q=${encodeURIComponent(`site:facebook.com "${lead.name}" "${lead.city || ''}"`)}`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className="p-3 bg-blue-50/50 hover:bg-blue-50 border border-blue-200/70 rounded-xl font-bold text-blue-900 flex items-center justify-between transition-colors"
@@ -2080,7 +2251,11 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
                   </a>
 
                   <a
-                    href={lead.socials?.tiktok || `https://www.tiktok.com/@${lead.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`}
+                    href={
+                      lead.socials?.tiktok && lead.socials.tiktok.startsWith('http')
+                        ? lead.socials.tiktok
+                        : `https://www.google.com/search?q=${encodeURIComponent(`site:tiktok.com "@${lead.name}"`)}`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-900 flex items-center justify-between transition-colors"
@@ -2218,19 +2393,192 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
             </div>
           )}
 
+          {/* TAB: CRUNCHBASE 4 & YELP BUSINESS REVIEWS */}
+          {activeTab === 'crunchbase_yelp' && (
+            <div className="space-y-4 animate-fadeIn">
+              
+              {/* Header RapidAPI Integration */}
+              <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-xl p-4.5 space-y-2 shadow-sm border border-slate-700/50">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Building className="w-5 h-5 text-emerald-400" />
+                    <div>
+                      <span className="font-black text-sm text-white tracking-wide block">
+                        RapidAPI Intelligence: Crunchbase 4 & Yelp Reviews
+                      </span>
+                      <span className="text-[11px] text-slate-300">
+                        Slots 2 e 3 configurados com endpoints oficiais
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Crunchbase Slot 2
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Yelp Slot 3
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CRUNCHBASE 4 CARD */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 font-black text-xs">
+                      CB
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-slate-900">
+                        Crunchbase 4 — Dados Corporativos & Funding
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Host: crunchbase4.p.rapidapi.com · POST /company
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleFetchCrunchbase}
+                    disabled={isLoadingCrunchbase}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {isLoadingCrunchbase ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    <span>{crunchbaseData ? 'Atualizar Crunchbase' : 'Consultar no Crunchbase 4'}</span>
+                  </button>
+                </div>
+
+                {crunchbaseData ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Fundação</span>
+                        <span className="font-bold text-slate-900">{crunchbaseData.founded_year || 'N/A'}</span>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Funcionários</span>
+                        <span className="font-bold text-slate-900">{crunchbaseData.employees_count || 'N/D'}</span>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Funding / Investimento</span>
+                        <span className="font-bold text-emerald-700">{crunchbaseData.funding || 'Bootstrapped / Privado'}</span>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Sede</span>
+                        <span className="font-bold text-slate-900 truncate block">{crunchbaseData.location || lead?.city}</span>
+                      </div>
+                    </div>
+
+                    {crunchbaseData.about && (
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700">
+                        <span className="font-bold text-slate-900 block mb-1">Sobre a Empresa:</span>
+                        <p className="leading-relaxed">{crunchbaseData.about}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+                    <span>Nenhum dado consultado nesta sessão. Clique no botão acima para consultar via RapidAPI Crunchbase.</span>
+                  </div>
+                )}
+              </div>
+
+              {/* YELP BUSINESS REVIEWS CARD */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-red-100 border border-red-200 flex items-center justify-center text-red-700 font-black text-xs">
+                      Y!
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-slate-900">
+                        Yelp Business Reviews — Ficha & Reputação
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Host: yelp-business-reviews.p.rapidapi.com · GET /search
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleFetchYelp}
+                    disabled={isLoadingYelp}
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    {isLoadingYelp ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    <span>{yelpData ? 'Atualizar Yelp' : 'Buscar no Yelp'}</span>
+                  </button>
+                </div>
+
+                {yelpData ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Avaliação Yelp</span>
+                        <span className="font-black text-amber-600">★ {yelpData.rating || 'N/A'}</span>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Nº de Reviews</span>
+                        <span className="font-bold text-slate-900">{yelpData.reviewCount || 0} avaliações</span>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Faixa de Preço</span>
+                        <span className="font-bold text-slate-900">{yelpData.priceRange || '€€ / Médio'}</span>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Telefone Yelp</span>
+                        <span className="font-bold text-slate-900 truncate block">{yelpData.phone || lead?.phone || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    {yelpData.images && yelpData.images.length > 0 && (
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1.5">
+                          Fotos do Estabelecimento no Yelp:
+                        </span>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {yelpData.images.map((img, i) => (
+                            <img
+                              key={i}
+                              src={img}
+                              alt={`Yelp photo ${i + 1}`}
+                              className="w-24 h-20 object-cover rounded-lg border border-slate-200 shrink-0 shadow-2xs"
+                              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+                    <span>Nenhum dado consultado nesta sessão. Clique no botão acima para buscar avaliações no Yelp.</span>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
         </div>
 
-        {/* Drawer Footer Actions */}
-        <div className="bg-white border-t border-slate-200 p-4 flex items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>Auditoria CriaHub Atualizada</span>
+        {/* Drawer Footer Actions (Mobile-Optimized) */}
+        <div className="bg-white border-t border-slate-200 p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0 safe-area-inset-bottom">
+          <div className="flex items-center justify-between sm:justify-start gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="font-bold text-slate-700">Dossiê High-Ticket Pronto</span>
+            </div>
+            <span className="sm:hidden text-[11px] text-indigo-600 font-bold truncate max-w-[140px]">{lead.name}</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
             <button
               onClick={() => handleCopy(scripts?.whatsapp.fullMessageText || '', 'footer-copy')}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+              className="min-h-[44px] px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5"
             >
               {copiedItem === 'footer-copy' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
               <span>{copiedItem === 'footer-copy' ? 'Copiado!' : 'Copiar Script'}</span>
@@ -2240,10 +2588,10 @@ export const LeadAnalysisDrawer: React.FC<LeadAnalysisDrawerProps> = ({
               href={whatsappWebUrl}
               target="_blank"
               rel="noreferrer"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5"
+              className="min-h-[44px] px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 active:scale-[0.98]"
             >
               <Send className="w-4 h-4" />
-              <span>Abordar no WhatsApp</span>
+              <span>WhatsApp</span>
             </a>
           </div>
         </div>

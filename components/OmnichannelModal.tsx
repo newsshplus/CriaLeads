@@ -13,6 +13,8 @@ import { buildObjectionCrusherMatrix, generateGoogleCalendarUrl } from '../servi
 import { buildCadenceMaster } from '../services/cadenceService';
 import { sendLeadToCriahubCrm, buildCriahubCrmPayload, getCriahubCrmConfig } from '../services/criahubCrmService';
 import { getSavedCountry, formatCurrencySymbol } from '../services/countryService';
+import { generateLocalizedHumanEmail, openGmailInNewTab } from '../services/ptPtOutreachService';
+import { isContactSuppressed, suppressContact, unsuppressContact } from '../services/rgpdSuppressionService';
 
 interface OmnichannelModalProps {
   lead: Lead | null;
@@ -140,23 +142,24 @@ const OmnichannelModal: React.FC<OmnichannelModalProps> = ({
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(currentWaMessage)}` 
     : null;
 
-  // Get active Email body
+  // Get active Email body (Localizado em PT-PT e sem clichês ou brasileirismos quando em Portugal)
   const getActiveEmail = () => {
+    const localizedHuman = generateLocalizedHumanEmail(lead, lead.country || getSavedCountry());
     if (emailMode === 'plain') {
       return {
-        subject: guardian.emailShield.cleanPlainText.subject,
-        body: guardian.emailShield.cleanPlainText.body
+        subject: localizedHuman.subject || guardian.emailShield.cleanPlainText.subject,
+        body: localizedHuman.body || guardian.emailShield.cleanPlainText.body
       };
     }
     if (emailMode === 'aida') {
       return {
-        subject: lead.outreach?.email?.subject || guardian.emailShield.cleanPlainText.subject,
-        body: lead.outreach?.email?.bodyAida || guardian.emailShield.cleanPlainText.body
+        subject: lead.outreach?.email?.subject || localizedHuman.subject,
+        body: lead.outreach?.email?.bodyAida || localizedHuman.body
       };
     }
     return {
-      subject: lead.outreach?.email?.subject || guardian.emailShield.cleanPlainText.subject,
-      body: lead.outreach?.email?.bodyPas || guardian.emailShield.cleanPlainText.body
+      subject: lead.outreach?.email?.subject || localizedHuman.subject,
+      body: lead.outreach?.email?.bodyPas || localizedHuman.body
     };
   };
 
@@ -230,6 +233,26 @@ const OmnichannelModal: React.FC<OmnichannelModalProps> = ({
 
   const currentCrusherItem = crusherMatrix.objections[activeObjectionKey];
 
+  const [isSuppressed, setIsSuppressed] = useState<boolean>(() => lead ? isContactSuppressed(lead.email, lead.phone) : false);
+  useEffect(() => {
+    setIsSuppressed(lead ? isContactSuppressed(lead.email, lead.phone) : false);
+  }, [lead]);
+
+  const handleToggleSuppression = () => {
+    if (!lead) return;
+    if (isSuppressed) {
+      if (window.confirm(`Deseja desbloquear ${lead.name} (${lead.email || lead.phone})?\nNovas comunicações poderão ser realizadas.`)) {
+        unsuppressContact(lead.email || '');
+        setIsSuppressed(false);
+      }
+    } else {
+      if (window.confirm(`Bloquear contacto ${lead.name} (${lead.email || lead.phone}) por RGPD (STOP)?\nNenhum envio de e-mail ou WhatsApp será permitido.`)) {
+        suppressContact(lead.email || '', lead.phone, lead.name, 'USER_REQUEST_STOP', 'Opt-out solicitado via Omnichannel.');
+        setIsSuppressed(true);
+      }
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-700 flex flex-col max-h-[92vh] my-auto animate-in fade-in zoom-in-95 duration-200">
@@ -282,13 +305,47 @@ const OmnichannelModal: React.FC<OmnichannelModalProps> = ({
                 Decisor Mapeado: <strong className="text-slate-200">{bant?.authority?.keyDecisionMaker || lead.decisionMaker?.name || 'Responsável Comercial'}</strong> ({bant?.authority?.role || lead.decisionMaker?.role || 'Diretoria'}) • {lead.city}
               </p>
             </div>
-            <button 
-              onClick={onClose}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleToggleSuppression}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  isSuppressed
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                    : 'bg-slate-800 hover:bg-slate-700 text-rose-300 border border-rose-500/30'
+                }`}
+                title={isSuppressed ? "Desbloquear contacto" : "Bloquear RGPD (STOP)"}
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>{isSuppressed ? 'Bloqueado (STOP)' : 'Bloquear RGPD'}</span>
+              </button>
+
+              <button 
+                onClick={onClose}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </div>
+
+          {/* Banner de Bloqueio RGPD */}
+          {isSuppressed && (
+            <div className="mt-3 bg-rose-950/80 border border-rose-600/50 rounded-lg p-3 text-xs text-rose-200 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 animate-pulse" />
+                <span>
+                  <strong>Contacto Bloqueado sob o RGPD (STOP):</strong> Este destinatário solicitou exclusão. Disparos diretos de e-mail e WhatsApp estão suspensos por proteção legal.
+                </span>
+              </div>
+              <button
+                onClick={handleToggleSuppression}
+                className="px-2.5 py-1 bg-rose-800 hover:bg-rose-700 text-white rounded font-bold text-[11px] shrink-0"
+              >
+                Desbloquear
+              </button>
+            </div>
+          )}
 
           {/* Dor Identificada Quick Callout */}
           <div className="mt-4 bg-slate-800/80 rounded-lg p-2.5 border border-slate-700 text-xs flex items-start gap-2">
@@ -1682,14 +1739,49 @@ const OmnichannelModal: React.FC<OmnichannelModalProps> = ({
                     {copiedKey === 'email' ? 'Copiado!' : 'Copiar Email Completo'}
                   </button>
 
+                  {/* Botão Direto Gmail (1-Click) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isSuppressed) {
+                        alert(`⚠️ PROTEÇÃO RGPD / STOP ATIVA: O contacto "${lead.name}" solicitou opt-out e exclusão da base. Envio de e-mail bloqueado para prevenir infrações legais.`);
+                        return;
+                      }
+                      openGmailInNewTab(
+                        lead.decisionMaker?.directEmail || lead.email || '',
+                        currentEmail.subject,
+                        currentEmail.body
+                      );
+                      if (onMarkContacted) onMarkContacted(lead.id);
+                    }}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold shadow transition-all ${
+                      isSuppressed 
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+                        : 'bg-sky-600 hover:bg-sky-700 text-white cursor-pointer'
+                    }`}
+                    title={isSuppressed ? "Contacto bloqueado sob o RGPD" : "Abre o Gmail no navegador já com Destinatário, Assunto e Mensagem preenchidos prontos para envio"}
+                  >
+                    <Send className="w-4 h-4" />
+                    {isSuppressed ? 'Bloqueado (STOP)' : 'Abrir no Gmail (1-Click)'}
+                  </button>
+
                   <a
-                    href={`mailto:${lead.decisionMaker?.directEmail || lead.email || ''}?subject=${encodeURIComponent(currentEmail.subject)}&body=${encodeURIComponent(currentEmail.body)}`}
-                    onClick={() => onMarkContacted && onMarkContacted(lead.id)}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow transition-all"
+                    href={isSuppressed ? '#' : `mailto:${lead.decisionMaker?.directEmail || lead.email || ''}?subject=${encodeURIComponent(currentEmail.subject)}&body=${encodeURIComponent(currentEmail.body)}`}
+                    onClick={(e) => {
+                      if (isSuppressed) {
+                        e.preventDefault();
+                        alert(`⚠️ PROTEÇÃO RGPD / STOP ATIVA: Contacto bloqueado.`);
+                        return;
+                      }
+                      if (onMarkContacted) onMarkContacted(lead.id);
+                    }}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                      isSuppressed ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                    title="Abre cliente de e-mail padrão do sistema (Outlook, Thunderbird, Apple Mail)"
                   >
                     <Mail className="w-4 h-4" />
-                    Abrir no Gmail / Outlook
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    Outro E-mail / Mailto
                   </a>
                 </div>
               </div>

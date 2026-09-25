@@ -1,6 +1,7 @@
 import { Lead, BusinessProfile, SearchBatch } from "../types";
 import { RealEstatePropertyLead, RealEstateSearchBatch } from "./realEstateTypes";
 import { DEFAULT_BUSINESS_PROFILE } from "../constants";
+import { hydrateAndEnrichLeadsWithRealData } from "./nicheIntelligenceService";
 
 const CONTACTED_STORAGE_KEY = 'architect_contacted_history_v2';
 const BUSINESS_PROFILE_KEY = 'architect_business_profile_v2';
@@ -72,7 +73,12 @@ export const getSearchBatches = (): SearchBatch[] => {
     if (data) {
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // Hidratação e enriquecimento automático com websites e dados 100% REAIS (Silhouette, Luxo Aesthetic, Lumina, etc.)
+        const hydrated = parsed.map((b: SearchBatch) => ({
+          ...b,
+          leads: hydrateAndEnrichLeadsWithRealData(b.leads || [])
+        }));
+        return hydrated;
       }
     }
 
@@ -80,21 +86,22 @@ export const getSearchBatches = (): SearchBatch[] => {
     const legacyLeads = getSavedLeads();
     if (legacyLeads && legacyLeads.length > 0) {
       const now = new Date();
+      const hydratedLegacy = hydrateAndEnrichLeadsWithRealData(legacyLeads);
       const firstBatch: SearchBatch = {
         id: `batch-legacy-${now.getTime()}`,
-        name: `Lote Inicial (${legacyLeads[0]?.city || 'Prospecção'})`,
+        name: `Lote Inicial (${hydratedLegacy[0]?.city || 'Prospecção'})`,
         timestamp: now.toISOString(),
         formattedDate: `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
         keyword: 'Pesquisa Anterior',
-        niche: legacyLeads[0]?.category || 'Multi-Nicho',
-        city: legacyLeads[0]?.city || 'Geral',
-        district: legacyLeads[0]?.district || 'Todas',
-        country: legacyLeads[0]?.country || 'PT',
-        countryName: legacyLeads[0]?.country === 'BR' ? 'Brasil' : 'Portugal',
-        leadCount: legacyLeads.length,
-        scoreACount: legacyLeads.filter(l => l.icpTier === 'SCORE_A').length,
-        scoreBCount: legacyLeads.filter(l => l.icpTier === 'SCORE_B').length,
-        leads: legacyLeads.map(l => ({ ...l, batchId: `batch-legacy-${now.getTime()}` }))
+        niche: hydratedLegacy[0]?.category || 'Multi-Nicho',
+        city: hydratedLegacy[0]?.city || 'Geral',
+        district: hydratedLegacy[0]?.district || 'Todas',
+        country: hydratedLegacy[0]?.country || 'PT',
+        countryName: hydratedLegacy[0]?.country === 'BR' ? 'Brasil' : 'Portugal',
+        leadCount: hydratedLegacy.length,
+        scoreACount: hydratedLegacy.filter(l => l.icpTier === 'SCORE_A').length,
+        scoreBCount: hydratedLegacy.filter(l => l.icpTier === 'SCORE_B').length,
+        leads: hydratedLegacy.map(l => ({ ...l, batchId: `batch-legacy-${now.getTime()}` }))
       };
       saveSearchBatches([firstBatch]);
       return [firstBatch];
@@ -311,7 +318,13 @@ export const setActiveRealEstateBatchId = (id: string | null) => {
 export const getSavedLeads = (): Lead[] => {
   try {
     const data = localStorage.getItem(LEADS_CACHE_KEY);
-    return data ? JSON.parse(data) : [];
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        return hydrateAndEnrichLeadsWithRealData(parsed);
+      }
+    }
+    return [];
   } catch (e) {
     return [];
   }

@@ -11,21 +11,26 @@ const COUNTRY_STORAGE_KEY = 'architect_country_v1';
 
 export function getSavedCountry(): string {
   try {
-    const raw = localStorage.getItem(COUNTRY_STORAGE_KEY);
-    if (raw && CURRENCIES[raw]) return raw;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = localStorage.getItem(COUNTRY_STORAGE_KEY);
+      if (raw && CURRENCIES[raw]) return raw;
+    }
   } catch (e) {
-    console.error("Failed to load country", e);
+    // Silently fall back to default country
   }
   return DEFAULT_COUNTRY;
 }
 
 export function hasSavedCountryChoice(): boolean {
   try {
-    const raw = localStorage.getItem(COUNTRY_STORAGE_KEY);
-    return !!raw && !!CURRENCIES[raw];
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = localStorage.getItem(COUNTRY_STORAGE_KEY);
+      return !!raw && !!CURRENCIES[raw];
+    }
   } catch (e) {
     return false;
   }
+  return false;
 }
 
 export function saveCountry(country: string) {

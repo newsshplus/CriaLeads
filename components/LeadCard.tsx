@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Lead, IcpTier, BusinessProfile } from '../types';
+import { Lead, BusinessProfile } from '../types';
 import { 
   Globe, Phone, MapPin, ExternalLink, Trash2, Mail, 
-  AlertTriangle, CheckCircle, MessageSquare, PhoneCall, Zap, 
-  Sparkles, User, ShieldCheck, Flame, Cpu, Clock, Layers, Target,
-  FileText, Edit3, ChevronRight, Copy, Check, Compass
+  AlertTriangle, MessageSquare, PhoneCall, Zap, 
+  User, Check, Copy, Award, Send, CheckCircle2,
+  Instagram, Linkedin, Star, ShieldAlert, Sparkles
 } from 'lucide-react';
-import { generateDeterministicNicheOutreach } from '../services/realtimeSdrAiOutreachService';
-import { RealtimeSdrOutreachPanel } from './RealtimeSdrOutreachPanel';
 import { openWhatsApp1Click } from '../services/whatsAppOutreachHelper';
-import { calculateLeadRoiRecommendation, getRoiVerdictStyle } from '../services/roiRecommendationService';
+import { calculateLeadRoiRecommendation } from '../services/roiRecommendationService';
+import { generateLocalizedHumanEmail, openGmailInNewTab } from '../services/ptPtOutreachService';
+import { isContactSuppressed, suppressContact, unsuppressContact } from '../services/rgpdSuppressionService';
+import { resolveRealCompanyWebsite } from '../services/nicheIntelligenceService';
+import { extractCleanBrandName } from '../services/freeB2bProspectorService';
 
 interface LeadCardProps {
   lead: Lead;
@@ -29,9 +31,7 @@ interface LeadCardProps {
   onOpenCockpit?: (lead: Lead) => void;
 }
 
-type CardSubStep = 'pitch' | 'diagnosis' | 'dossier';
-
-const LeadCard: React.FC<LeadCardProps> = ({ 
+export const LeadCard: React.FC<LeadCardProps> = ({ 
   lead, 
   isSelected, 
   businessProfile,
@@ -39,71 +39,113 @@ const LeadCard: React.FC<LeadCardProps> = ({
   onUpdateStatus, 
   onDelete,
   onOpenOmnichannel,
-  onOpenLiveCopilot,
-  onOpenNotes,
   onOpenCriahubDrawer,
-  onOpenHunterCall,
   onOpenFocusDialer,
-  onUpdateLead,
-  onOpenGroqTriage,
-  onOpenCockpit
+  onOpenHunterCall,
+  onUpdateLead
 }) => {
-  const [subStep, setSubStep] = useState<CardSubStep>('pitch');
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [showAiOutreachModal, setShowAiOutreachModal] = useState<boolean>(false);
+  const [isSuppressed, setIsSuppressed] = useState<boolean>(() => isContactSuppressed(lead.email, lead.phone));
+
+  const handleToggleSuppression = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isSuppressed) {
+      if (window.confirm(`Deseja desbloquear o contacto ${lead.name} (${lead.email || lead.phone})?\nEle poderá voltar a receber comunicações.`)) {
+        unsuppressContact(lead.email || '');
+        setIsSuppressed(false);
+      }
+    } else {
+      if (window.confirm(`Confirmar bloqueio RGPD (STOP) para ${lead.name} (${lead.email || lead.phone})?\n\nEsta ação garante proteção jurídica: nenhum e-mail ou WhatsApp poderá ser enviado a este contacto.`)) {
+        suppressContact(lead.email || '', lead.phone, lead.name, 'USER_REQUEST_STOP', 'Solicitação de opt-out (STOP) sob o RGPD.');
+        setIsSuppressed(true);
+      }
+    }
+  };
 
   const copyToClipboard = (text: string, fieldId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!text) return;
     navigator.clipboard.writeText(text);
     setCopiedField(fieldId);
-    setTimeout(() => setCopiedField(null), 2200);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'contacted': return 'bg-blue-100 text-blue-900 border-blue-300 font-extrabold';
-      case 'qualified': return 'bg-emerald-100 text-emerald-900 border-emerald-300 font-extrabold';
-      case 'ignored': return 'bg-slate-100 text-slate-700 border-slate-300 font-medium';
-      default: return 'bg-indigo-100 text-indigo-950 border-indigo-300 font-extrabold';
-    }
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
   const isContacted = lead.status === 'contacted';
 
-  // Resolução dos dados do contato
+  // Análise de Veredito Rápido: LIGAR vs MANDAR EMAIL vs WHATSAPP
+  const roiRec = lead.roiRecommendation || calculateLeadRoiRecommendation(lead, businessProfile);
   const primaryPhone = lead.decisionMaker?.directPhone || lead.phone || '';
   const cleanPhone = primaryPhone.replace(/\D/g, '');
   const hasPhone = Boolean(cleanPhone && cleanPhone.length >= 7);
   const isDirectDecisorPhone = Boolean(lead.decisionMaker?.directPhone);
+  
+  const targetEmail = lead.decisionMaker?.directEmail || lead.email || '';
+  const hasEmail = Boolean(targetEmail && targetEmail.includes('@'));
 
-  const decisorName = lead.decisionMaker?.name || lead.bantPlus?.authority?.keyDecisionMaker || 'Decisor Comercial';
-  const decisorRole = lead.decisionMaker?.role || lead.bantPlus?.authority?.role || 'Diretoria / Gestão';
+  // Decisor
+  const decisorName = lead.decisionMaker?.name || lead.bantPlus?.authority?.keyDecisionMaker || 'Diretoria / Decisor';
+  const decisorRole = lead.decisionMaker?.role || lead.bantPlus?.authority?.role || 'Sócio / Gerência';
 
-  // Gancho e abordagem personalizada sem clichê
-  const deterministicOutreach = generateDeterministicNicheOutreach(lead);
-  const activeOutreach = lead.realtimeSdrOutreach || deterministicOutreach;
-  const callAngleText = activeOutreach.callAnchor20s || lead.callAngleSuggestion || 'Identificamos oportunidade de acelerar conversão digital e atendimento com IA.';
+  // Lógica clara de decisão SDR
+  let sdrActionType: 'CALL' | 'EMAIL' | 'WHATSAPP' = 'CALL';
+  if (roiRec.verdict === 'EMAIL_ONLY' || (!hasPhone && hasEmail)) {
+    sdrActionType = 'EMAIL';
+  } else if (roiRec.verdict === 'WHATSAPP_FIRST' || (hasPhone && cleanPhone.length >= 9 && !isDirectDecisorPhone)) {
+    sdrActionType = 'WHATSAPP';
+  } else if (hasPhone) {
+    sdrActionType = 'CALL';
+  } else if (hasEmail) {
+    sdrActionType = 'EMAIL';
+  }
 
-  // Recomendação de Investimento de Tempo / ROI SDR & Canal de Ataque
-  const roiRec = lead.roiRecommendation || calculateLeadRoiRecommendation(lead, businessProfile);
-  const roiStyle = getRoiVerdictStyle(roiRec.verdict);
+  // Gera o e-mail humanizado em PT-PT (sem brasileirismos) para o Gmail direto
+  const localizedEmail = generateLocalizedHumanEmail(lead, lead.country);
 
-  const detectedTools = lead.techStack?.detectedTools || [];
-  const flaws = lead.keyFlaws || lead.bantPlus?.need?.operationalFlaws || [];
+  // Logo ou Favicon (resolução de sites reais, inclusive mapeamento de marcas verificadas)
+  const resolvedReal = resolveRealCompanyWebsite(lead.name, lead.city, lead.country);
+  const candidateWebsite = (lead.website && lead.website.trim()) || resolvedReal.website || '';
+  const isRealWebsite = Boolean(
+    candidateWebsite &&
+    candidateWebsite.startsWith('http') &&
+    !candidateWebsite.includes('google.com/maps') &&
+    !candidateWebsite.includes('maps.google')
+  );
+  const effectiveWebsite = isRealWebsite ? candidateWebsite : '';
+  const domain = effectiveWebsite ? effectiveWebsite.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0] : '';
+  const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : null;
+  const cleanBrand = extractCleanBrandName(lead.name);
 
-  const handleStartCall = () => {
-    if (onOpenFocusDialer) {
-      onOpenFocusDialer(lead);
-    } else if (onOpenHunterCall) {
-      onOpenHunterCall(lead);
-    } else {
-      onOpenOmnichannel(lead, 'call');
+  // Rating e Avaliações
+  const rating = lead.rating || 0;
+  const reviewsCount = lead.reviews || 0;
+
+  // Classe / Score
+  const score = lead.kitAluno?.score?.score ?? lead.icpScore ?? 70;
+  const classe = lead.kitAluno?.score?.classificacao ?? (score >= 85 ? 'A' : score >= 65 ? 'B' : score >= 45 ? 'C' : 'D');
+
+  // Disparo do Gmail direto
+  const handleOpenGmail = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (isSuppressed) {
+      alert(`⚠️ PROTEÇÃO RGPD / STOP ATIVA:\nO contacto "${lead.name}" (${lead.email || ''}) solicitou a exclusão dos seus dados (STOP) ou foi bloqueado. Novos envios de e-mail estão impedidos para prevenir infrações e multas.`);
+      return;
+    }
+    openGmailInNewTab(localizedEmail.recipient, localizedEmail.subject, localizedEmail.body);
+    if (onUpdateLead && lead.status !== 'contacted') {
+      onUpdateLead({
+        ...lead,
+        status: 'contacted'
+      });
     }
   };
 
-  const handleWhatsApp1Click = (e?: React.MouseEvent) => {
+  // Disparo do WhatsApp direto
+  const handleWhatsAppClick = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (isSuppressed) {
+      alert(`⚠️ PROTEÇÃO RGPD / STOP ATIVA:\nO contacto "${lead.name}" (${lead.phone || ''}) solicitou exclusão (STOP). O disparo para o WhatsApp está bloqueado para conformidade legal.`);
+      return;
+    }
     const success = openWhatsApp1Click(lead);
     if (success && onUpdateLead) {
       onUpdateLead({
@@ -116,646 +158,464 @@ const LeadCard: React.FC<LeadCardProps> = ({
     }
   };
 
+  // Disparo de Chamada Telefônica
+  const handleStartCall = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (onOpenFocusDialer) {
+      onOpenFocusDialer(lead);
+    } else if (onOpenHunterCall) {
+      onOpenHunterCall(lead);
+    } else {
+      onOpenOmnichannel(lead, 'call');
+    }
+  };
+
+  // Abre a visualização aprofundada (Dossiê / Raio-X completo)
+  const handleOpenDetailedDossier = () => {
+    if (onOpenCriahubDrawer) {
+      onOpenCriahubDrawer(lead);
+    } else {
+      onOpenOmnichannel(lead, 'bant');
+    }
+  };
+
   return (
     <div 
       id={`lead-card-${lead.id}`}
-      className={`bg-white rounded-2xl border shadow-xs hover:shadow-md transition-all duration-200 p-4 sm:p-5 flex flex-col justify-between relative group ${
-        isSelected ? 'border-amber-500 ring-2 ring-amber-400/30 bg-amber-50/10' : 'border-slate-200/90'
+      onClick={handleOpenDetailedDossier}
+      className={`bg-white rounded-xl border transition-all duration-150 p-4 sm:p-5 flex flex-col justify-between relative cursor-pointer group hover:shadow-md ${
+        isSelected 
+          ? 'border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/20' 
+          : 'border-slate-200 hover:border-slate-300'
       } ${isContacted ? 'bg-slate-50/80 border-slate-300/80' : ''}`}
     >
-      {/* 1. CABEÇALHO COMPACTO & DIRETO */}
-      <div>
-        <div className="flex items-start justify-between gap-2.5 pb-2.5 border-b border-slate-100">
-          <div className="flex items-start gap-2.5 min-w-0 flex-1">
+      {/* TOPO: EMPRESA, LOCALIZAÇÃO & CLASSE */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
             {onSelect && (
-              <input 
-                type="checkbox" 
-                checked={isSelected}
-                onChange={() => onSelect(lead.id)}
-                className="w-4 h-4 mt-1 text-amber-600 border-slate-300 rounded focus:ring-amber-500 cursor-pointer shrink-0"
-              />
+              <div onClick={e => e.stopPropagation()} className="pt-0.5">
+                <input 
+                  type="checkbox" 
+                  checked={isSelected}
+                  onChange={() => onSelect(lead.id)}
+                  className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                />
+              </div>
             )}
+
+            {/* Favicon / Avatar */}
+            <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+              {faviconUrl ? (
+                <img 
+                  src={faviconUrl} 
+                  alt="" 
+                  className="w-5 h-5 object-contain"
+                  onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                />
+              ) : (
+                <span className="text-xs font-black text-slate-600">
+                  {lead.name.slice(0, 2).toUpperCase()}
+                </span>
+              )}
+            </div>
+
+            {/* Nome & Categoria */}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 
-                  className="font-black text-slate-900 text-base sm:text-lg leading-snug hover:text-amber-700 cursor-pointer transition-colors truncate" 
-                  title={lead.name}
-                  onClick={() => onOpenCriahubDrawer ? onOpenCriahubDrawer(lead) : onOpenOmnichannel(lead, 'bant')}
-                >
-                  {lead.name}
-                </h3>
+              <h3 
+                className="font-bold text-slate-900 text-sm sm:text-base leading-snug group-hover:text-indigo-600 transition-colors break-words"
+                title={lead.name}
+              >
+                {lead.name}
+              </h3>
 
-                {/* Badge de Veredito de Investimento do SDR */}
-                <span 
-                  className={`inline-flex items-center text-xs font-black px-2 py-0.5 rounded-md border gap-1 shadow-2xs ${roiStyle.badgeBg}`}
-                  title={`${roiRec.investmentWorthLabel}: ${roiRec.primaryReason}`}
-                >
-                  <span>{roiStyle.emoji}</span>
-                  <span>{roiRec.verdictBadge}</span>
+              <div className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                <span className="font-semibold text-slate-700">{lead.category || 'Empresa'}</span>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-slate-600">
+                  <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                  {lead.city}{lead.country ? `, ${lead.country}` : ''}
                 </span>
-
-                {/* Badge de Dia Planejado da Cadência (5/dia) */}
-                {lead.cadenceDay && (
-                  <span 
-                    className="inline-flex items-center text-[11px] font-black px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-900 border border-indigo-200 gap-1"
-                    title={`Lead programado no planejamento para ${lead.cadenceDayLabel || `Dia ${lead.cadenceDay}`}`}
-                  >
-                    <span>📅</span>
-                    <span>{lead.cadenceDayLabel || `Dia ${lead.cadenceDay}`}</span>
-                  </span>
+                {rating > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="text-amber-700 font-bold text-xs flex items-center gap-0.5">
+                      ★ {rating.toFixed(1)} {reviewsCount > 0 ? `(${reviewsCount})` : ''}
+                    </span>
+                  </>
                 )}
-              </div>
-
-              <div className="text-xs text-slate-600 mt-1 flex items-center gap-2 flex-wrap font-medium">
-                <span className="font-extrabold text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                  {lead.category}
-                </span>
-                <span className="flex items-center gap-1 text-slate-700">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  {lead.city}, {lead.country || 'Brasil'}
-                </span>
-                {lead.rating ? (
-                  <span className="text-amber-800 font-black text-xs">
-                    ★ {lead.rating.toFixed(1)} {lead.reviews ? `(${lead.reviews})` : ''}
-                  </span>
-                ) : null}
               </div>
             </div>
           </div>
 
-          {/* Match Score */}
-          <div className="text-right shrink-0 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
-            <span className="text-base font-black text-slate-900">{lead.intentScore ?? lead.icpScore}%</span>
-            <span className="text-[11px] block font-extrabold text-amber-700 uppercase">Match</span>
+          {/* Badges: Classe & Retainer High-Ticket */}
+          <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-1.5 self-start pt-1 sm:pt-0">
+            {isSuppressed && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                🚫 RGPD (STOP)
+              </span>
+            )}
+            <span 
+              className={`inline-flex items-center text-xs font-extrabold px-2.5 py-1 rounded-md border shadow-2xs ${
+                classe === 'A' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                classe === 'B' ? 'bg-blue-50 text-blue-800 border-blue-300' :
+                classe === 'C' ? 'bg-amber-50 text-amber-800 border-amber-300' :
+                'bg-slate-100 text-slate-700 border-slate-300'
+              }`}
+            >
+              Classe {classe} · {score} pts
+            </span>
+            <span className="text-[10px] font-black text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 flex items-center gap-1">
+              <span>💎</span>
+              <span>Retainer €599 - €997</span>
+            </span>
           </div>
         </div>
 
-        {/* 🛑 ALERTA ANTI-QUEIMAÇÃO NO CARD */}
-        {(lead.status === 'contacted' || lead.alreadyContactedWarning?.isContacted) && (
-          <div className="mt-2.5 p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-start gap-2 text-xs">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <div className="min-w-0 flex-1">
-              <div className="font-black flex items-center gap-1.5 flex-wrap">
-                <span>🛑 JÁ CONTATADO ANTERIORMENTE</span>
-                {lead.alreadyContactedWarning?.formattedDate && (
-                  <span className="font-bold text-[10px] text-amber-800">em {lead.alreadyContactedWarning.formattedDate}</span>
-                )}
+        {/* 🎯 VEREDITO RÁPIDO DO SDR OU ALERTA DE BLOQUEIO RGPD */}
+        {isSuppressed ? (
+          <div className="rounded-lg p-2.5 border bg-rose-50 border-rose-200">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🚫</span>
+                <div>
+                  <span className="text-xs font-black uppercase tracking-wide text-rose-900">
+                    Contacto Bloqueado (RGPD / Opt-Out "STOP")
+                  </span>
+                  <p className="text-[11px] text-rose-700 leading-tight">
+                    Este contacto solicitou opt-out sob o RGPD. Disparos diretos de e-mail e WhatsApp estão suspensos por proteção legal.
+                  </p>
+                </div>
               </div>
-              <div className="text-[11px] text-amber-900 mt-0.5">
-                <strong>Ocorrência:</strong> {lead.alreadyContactedWarning?.outcomeLabel || lead.contactOutcomeLabel || 'Contato Realizado'}
-                {(lead.alreadyContactedWarning?.notes || lead.contactNotes) && (
-                  <span> • <em>"{lead.alreadyContactedWarning?.notes || lead.contactNotes}"</em></span>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={handleToggleSuppression}
+                className="px-2 py-1 text-[10px] font-bold text-rose-700 hover:bg-rose-100 border border-rose-300 rounded transition-colors shrink-0"
+                title="Desbloquear contacto"
+              >
+                Desbloquear
+              </button>
             </div>
           </div>
-        )}
-
-        {/* 2. NAVEGAÇÃO EM SUBETAPAS (TABS COMPACTAS) */}
-        <div className="flex items-center gap-1.5 mt-3 p-1 bg-slate-100/90 rounded-xl border border-slate-200 text-xs font-extrabold">
-          <button
-            type="button"
-            onClick={() => setSubStep('pitch')}
-            className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              subStep === 'pitch'
-                ? 'bg-white text-slate-900 shadow-xs font-black'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-            }`}
-          >
-            <PhoneCall className={`w-3.5 h-3.5 ${subStep === 'pitch' ? 'text-emerald-600' : 'text-slate-500'}`} />
-            <span>1. Contato & Pitch</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSubStep('diagnosis')}
-            className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              subStep === 'diagnosis'
-                ? 'bg-white text-slate-900 shadow-xs font-black'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-            }`}
-          >
-            <Target className={`w-3.5 h-3.5 ${subStep === 'diagnosis' ? 'text-amber-600' : 'text-slate-500'}`} />
-            <span>2. Diagnóstico & ICP</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSubStep('dossier')}
-            className={`flex-1 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              subStep === 'dossier'
-                ? 'bg-white text-slate-900 shadow-xs font-black'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-            }`}
-          >
-            <Sparkles className={`w-3.5 h-3.5 ${subStep === 'dossier' ? 'text-purple-600' : 'text-slate-500'}`} />
-            <span>3. Dossiê & Notas</span>
-          </button>
-        </div>
-
-        {/* 3. CONTEÚDO DAS SUBETAPAS */}
-        <div className="mt-3 min-h-[145px] flex flex-col justify-between">
-          {/* SUBETAPA 1: CONTATO & PITCH (DIRETO AO PONTO) */}
-          {subStep === 'pitch' && (
-            <div className="space-y-2.5 animate-fadeIn">
-              {/* BLOCO DE RECOMENDAÇÃO DE INVESTIMENTO & CANAL DE ATAQUE */}
-              <div className={`p-2.5 rounded-xl border ${roiStyle.containerBg} ${roiStyle.borderAccent} space-y-2 shadow-2xs`}>
-                <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                  <div className="flex items-center gap-1.5 font-black text-xs text-slate-900">
-                    <span>{roiStyle.emoji}</span>
-                    <span className="text-slate-800">{roiRec.investmentWorthLabel}</span>
-                  </div>
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded border shadow-2xs ${
-                    roiRec.verdict === 'CALL_MEETING'
-                      ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
-                      : roiRec.verdict === 'WHATSAPP_FIRST'
-                      ? 'bg-teal-100 text-teal-950 border-teal-300'
-                      : roiRec.verdict === 'EMAIL_ONLY'
-                      ? 'bg-amber-100 text-amber-950 border-amber-300'
-                      : 'bg-slate-100 text-slate-700 border-slate-300'
+        ) : (
+          <div className="rounded-lg p-2.5 border transition-all" style={{
+            backgroundColor: sdrActionType === 'CALL' ? '#ecfdf5' : sdrActionType === 'EMAIL' ? '#f0f9ff' : '#f0fdf4',
+            borderColor: sdrActionType === 'CALL' ? '#a7f3d0' : sdrActionType === 'EMAIL' ? '#bae6fd' : '#bbf7d0'
+          }}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">
+                  {sdrActionType === 'CALL' ? '📞' : sdrActionType === 'EMAIL' ? '✉️' : '💬'}
+                </span>
+                <div>
+                  <span className={`text-xs font-black uppercase tracking-wide ${
+                    sdrActionType === 'CALL' ? 'text-emerald-900' : sdrActionType === 'EMAIL' ? 'text-sky-900' : 'text-teal-900'
                   }`}>
-                    {roiRec.verdict === 'CALL_MEETING' ? '🔥 QUENTE (Ligar SDR)' : roiRec.verdict === 'WHATSAPP_FIRST' ? '💬 MÉDIO (WhatsApp)' : roiRec.verdict === 'EMAIL_ONLY' ? '📩 FRIO (E-mail Seguro)' : '⛔ Inviável'}
+                    {sdrActionType === 'CALL' ? 'Prioridade: Ligar Agora' : sdrActionType === 'EMAIL' ? 'Prioridade: Enviar E-mail' : 'Prioridade: WhatsApp 1-a-1'}
                   </span>
-                </div>
-
-                <p className="text-xs text-slate-800 font-medium leading-snug">
-                  {roiRec.primaryReason}
-                </p>
-
-                {/* Aviso Anti-Spam Exclusivo para WhatsApp em Não-Clientes */}
-                {roiRec.offeringSynergy?.contactFormatEvaluation?.antiSpamWarning && (
-                  <div className="p-2 rounded-lg bg-rose-100/90 border border-rose-300 text-[11px] text-rose-950 space-y-0.5">
-                    <div className="font-black flex items-center gap-1 text-rose-900">
-                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                      <span>Risco Anti-Spam: Não envie mensagens em massa!</span>
-                    </div>
-                    <p className="text-[10px] leading-snug text-rose-800 font-medium">
-                      O envio frio para não-clientes pode causar banimento imediato no WhatsApp. Aborde 1-a-1 citando a falha específica.
-                    </p>
-                  </div>
-                )}
-
-                {/* Falhas Digitais & Nossos Serviços que Servem para a Empresa */}
-                {roiRec.offeringSynergy && (
-                  <div className="bg-white/90 rounded-lg p-2 border border-slate-200/80 space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-black text-slate-700 uppercase tracking-wide flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-amber-600" />
-                        Falhas no Meio Digital & Serviços Ofertáveis:
-                      </span>
-                      {roiRec.offeringSynergy.targetDealSize && (
-                        <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-300">
-                          {roiRec.offeringSynergy.targetDealSize.split('(')[0]}
-                        </span>
-                      )}
-                    </div>
-
-                    {(roiRec.offeringSynergy.detectedDigitalFlaws?.length || 0) > 0 ? (
-                      <div className="space-y-1">
-                        {roiRec.offeringSynergy.detectedDigitalFlaws?.slice(0, 2).map((flaw, fIdx) => (
-                          <div key={fIdx} className="bg-slate-50 border border-slate-200 rounded p-1.5 space-y-0.5">
-                            <div className="flex items-center justify-between text-[10px]">
-                              <span className="font-bold text-rose-900 flex items-center gap-1">
-                                <span className="text-rose-600 font-black">•</span> {flaw.flawTitle}
-                              </span>
-                              <span className="text-[9px] text-slate-500 font-semibold">{flaw.categoryLabel}</span>
-                            </div>
-                            <div className="text-[10px] font-semibold text-indigo-900 flex items-center gap-1">
-                              <span>💼 Solução:</span> <span className="font-black text-indigo-950">{flaw.offeredService}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (roiRec.offeringSynergy.servicesMatched?.length || 0) > 0 ? (
-                      <div className="flex flex-wrap gap-1 pt-0.5">
-                        {roiRec.offeringSynergy.servicesMatched?.map((srv, sIdx) => (
-                          <span key={sIdx} className="text-[10px] font-bold bg-indigo-50 text-indigo-950 border border-indigo-200 px-1.5 py-0.5 rounded">
-                            💼 {srv}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-[10px] text-slate-600 italic">
-                        {roiRec.offeringSynergy.leadNeedMatchExplanation}
-                      </div>
-                    )}
-
-                    <div className={`mt-1 text-[10px] font-medium p-1.5 rounded ${
-                      roiRec.offeringSynergy.sdrCostJustified 
-                        ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' 
-                        : 'bg-amber-50 text-amber-900 border border-amber-200'
-                    }`}>
-                      <strong className="font-black">Viabilidade do SDR:</strong> {roiRec.offeringSynergy.whySdrJustifiedOrNot}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sinais em chips rápidos e meta */}
-                <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
-                  <div className="flex items-center gap-1.5 flex-wrap text-[10px]">
-                    <span className={`px-1.5 py-0.5 rounded font-bold border ${roiRec.dataSignals.hasDirectDecisor ? 'bg-emerald-100 text-emerald-950 border-emerald-300' : 'bg-slate-100 text-slate-700 border-slate-300'}`}>
-                      {roiRec.dataSignals.hasDirectDecisor ? '✓ Decisor Mapeado' : 'Recepção / Geral'}
-                    </span>
-                    <span className={`px-1.5 py-0.5 rounded font-bold border ${roiRec.dataSignals.phoneType === 'direct_mobile' ? 'bg-teal-100 text-teal-950 border-teal-300' : roiRec.dataSignals.hasValidPhone ? 'bg-blue-100 text-blue-950 border-blue-300' : 'bg-rose-100 text-rose-950 border-rose-300'}`}>
-                      {roiRec.dataSignals.phoneType === 'direct_mobile' ? '📱 Celular / WhatsApp' : roiRec.dataSignals.hasValidPhone ? '☎️ Fixo Geral' : 'Sem Telefone'}
-                    </span>
-                    {roiRec.dataSignals.hasCtaLeak && (
-                      <span className="px-1.5 py-0.5 rounded font-bold bg-amber-100 text-amber-950 border border-amber-300">
-                        ⚠️ Gargalo de Atendimento
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-black text-slate-700">
-                    🎯 {roiRec.expectedGoal}
-                  </span>
-                </div>
-              </div>
-
-              {/* Linha do Decisor e Telefone */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-900 shrink-0 font-black">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-900 font-black text-xs sm:text-sm truncate">
-                        {decisorName}
-                      </span>
-                      {lead.decisionMaker?.linkedin && (
-                        <a
-                          href={lead.decisionMaker.linkedin.startsWith('http') ? lead.decisionMaker.linkedin : `https://${lead.decisionMaker.linkedin}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-700 hover:text-blue-900 ml-1 shrink-0"
-                          title="LinkedIn do Decisor"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-                    <span className="text-xs text-slate-600 font-medium block truncate">
-                      {decisorRole}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                  {hasPhone ? (
-                    <>
-                      <span className="font-mono font-bold text-xs text-slate-900 bg-white px-2 py-1 rounded-md border border-slate-200">
-                        {primaryPhone}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => copyToClipboard(primaryPhone, 'phone', e)}
-                        className="p-1 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 rounded-md transition-colors"
-                        title="Copiar telefone"
-                      >
-                        {copiedField === 'phone' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-xs text-slate-500 italic">Sem telefone listado</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Gancho Sub-30s com 1-Click Copy */}
-              <div className="p-2.5 bg-amber-50/80 rounded-xl border border-amber-200/90 space-y-1">
-                <div className="flex items-center justify-between text-xs font-extrabold text-amber-950">
-                  <span className="flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                    <span>Gancho de Abertura Sub-30s:</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => copyToClipboard(callAngleText, 'anchor', e)}
-                    className="text-xs font-bold text-amber-900 hover:text-amber-950 flex items-center gap-1 cursor-pointer"
-                  >
-                    {copiedField === 'anchor' ? <Check className="w-3 h-3 text-emerald-700" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedField === 'anchor' ? 'Copiado!' : 'Copiar'}</span>
-                  </button>
-                </div>
-                <p className="text-xs text-slate-900 font-medium leading-snug line-clamp-2">
-                  &ldquo;{callAngleText}&rdquo;
-                </p>
-              </div>
-
-              {/* CTAs Diretos de Abordagem Adaptados ao Veredito Comercial */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                {roiRec.verdict === 'CALL_MEETING' ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleStartCall}
-                      className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs transition-all active:scale-[0.99] cursor-pointer ring-2 ring-emerald-400/30"
-                      title="Ligar agora para tentar agendar demonstração/reunião"
-                    >
-                      <PhoneCall className="w-4 h-4 text-white shrink-0 animate-pulse" />
-                      <span>LIGAR AGORA: AGENDAR REUNIÃO</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleWhatsApp1Click}
-                      className={`w-full py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 border transition-all active:scale-[0.99] cursor-pointer ${
-                        lead.whatsAppStatus === 'sent'
-                          ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border-emerald-300'
-                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border-emerald-300'
-                      }`}
-                      title="Disparar WhatsApp complementar"
-                    >
-                      <MessageSquare className="w-4 h-4 text-emerald-700 shrink-0" />
-                      <span>{lead.whatsAppStatus === 'sent' ? '✓ WHATSAPP ENVIADO' : 'WHATSAPP 1-CLICK'}</span>
-                    </button>
-                  </>
-                ) : roiRec.verdict === 'WHATSAPP_FIRST' ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleWhatsApp1Click}
-                      className="w-full py-2.5 px-3 bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs transition-all active:scale-[0.99] cursor-pointer ring-2 ring-teal-400/30"
-                      title="Mandar mensagem direta de 1-Click pelo WhatsApp"
-                    >
-                      <MessageSquare className="w-4 h-4 text-white shrink-0 animate-pulse" />
-                      <span>{lead.whatsAppStatus === 'sent' ? '✓ WHATSAPP ENVIADO' : 'MANDAR WHATSAPP (1-CLICK)'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleStartCall}
-                      className="w-full py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
-                      title="Ligar pelo discador hunter"
-                    >
-                      <PhoneCall className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>LIGAR PELO SDR</span>
-                    </button>
-                  </>
-                ) : roiRec.verdict === 'EMAIL_ONLY' ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => onOpenOmnichannel(lead, 'email')}
-                      className="w-full py-2.5 px-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs transition-all active:scale-[0.99] cursor-pointer ring-2 ring-amber-400/30"
-                      title="Disparar e-mail AIDA para não queimar tempo do SDR em ligação fria"
-                    >
-                      <Mail className="w-4 h-4 text-white shrink-0" />
-                      <span>MANDAR E-MAIL (SEM PERDER TEMPO)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleWhatsApp1Click}
-                      className="w-full py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
-                      title="Testar WhatsApp"
-                    >
-                      <MessageSquare className="w-4 h-4 text-teal-600 shrink-0" />
-                      <span>WHATSAPP ALTERNATIVO</span>
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => onUpdateStatus(lead.id, 'ignored')}
-                      className="w-full py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-950 border border-rose-300 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
-                      title="Descartar este lead para poupar o tempo da equipe"
-                    >
-                      <Trash2 className="w-4 h-4 text-rose-700 shrink-0" />
-                      <span>DESCARTAR LEAD (POUPAR TEMPO)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => onOpenCriahubDrawer ? onOpenCriahubDrawer(lead) : onOpenOmnichannel(lead, 'bant')}
-                      className="w-full py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
-                      title="Ver dossiê completo"
-                    >
-                      <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
-                      <span>VER DOSSIÊ / REAVALIAR</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* SUBETAPA 2: DIAGNÓSTICO & ICP */}
-          {subStep === 'diagnosis' && (
-            <div className="space-y-2.5 animate-fadeIn">
-              {/* Avaliação de Investimento de Tempo / ROI */}
-              <div className={`p-2.5 rounded-xl border ${roiStyle.containerBg} ${roiStyle.borderAccent} text-xs space-y-1.5`}>
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                    <span>{roiStyle.emoji}</span>
-                    <span>Análise de Investimento de Tempo:</span>
-                  </span>
-                  <span className={`px-2 py-0.5 rounded font-black text-[11px] border ${roiStyle.badgeBg}`}>
-                    {roiRec.verdictBadge}
-                  </span>
-                </div>
-                <p className="text-slate-800 font-medium leading-relaxed">
-                  {roiRec.primaryReason}
-                </p>
-                <div className="p-2 bg-white/90 rounded-lg border border-slate-200/80 text-[11px] space-y-1">
-                  <div className="font-black text-slate-900 flex items-center gap-1">
-                    <Target className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                    <span>Dica Tática para o SDR:</span>
-                  </div>
-                  <p className="text-slate-700 leading-snug">
-                    {roiRec.sdrActionTip}
+                  <p className="text-[11px] text-slate-600 leading-tight">
+                    {sdrActionType === 'CALL' 
+                      ? (isDirectDecisorPhone ? 'Decisor com telefone direto mapeado — maior chance de conversão imediata' : 'Telefone disponível — ligar para filtrar recepção e falar com decisor')
+                      : sdrActionType === 'EMAIL' 
+                      ? 'Abordagem consultiva por e-mail recomendada (sem telefone direto ativo)' 
+                      : 'Telemóvel com WhatsApp — iniciar com mensagem personalizada'}
                   </p>
                 </div>
               </div>
 
-              {/* Matriz ICP & Decisão */}
-              {lead.seniorIcpQualification ? (
-                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="text-slate-600 block text-[11px] font-semibold">Decisão da Matriz Sênior:</span>
-                    <span className="font-bold text-slate-900">{lead.seniorIcpQualification.businessType}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-base font-black text-slate-900">{lead.seniorIcpQualification.finalScore}/100</span>
-                    <span className="text-[10px] block font-bold text-slate-500 uppercase">Pontos ICP</span>
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Gaps e Dores */}
-              <div className="p-2.5 bg-rose-50/90 rounded-xl border border-rose-200 text-xs space-y-1">
-                <div className="flex items-center gap-1.5 font-bold text-rose-950">
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                  <span>Gaps & Oportunidades Identificadas:</span>
-                </div>
-                {flaws.length > 0 ? (
-                  flaws.slice(0, 2).map((flaw, idx) => (
-                    <div key={idx} className="text-xs text-rose-950 font-medium flex items-start gap-1.5">
-                      <span className="text-rose-500 font-bold">•</span>
-                      <span className="leading-snug">{flaw}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-rose-900">Ausência de automação de conversão e atendimento 24/7.</p>
-                )}
-              </div>
-
-              {/* Links e Tecnologias */}
-              <div className="flex items-center justify-between gap-2 pt-1 text-xs text-slate-700 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  {detectedTools.length > 0 ? (
-                    <div className="flex items-center gap-1">
-                      <Cpu className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      <span className="font-bold text-slate-800 text-[11px] truncate max-w-[170px]">
-                        {detectedTools.slice(0, 3).join(', ')}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-[11px] text-slate-500">Techs em validação</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {lead.website && (
-                    <a
-                      href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-indigo-700 hover:text-indigo-900 font-bold flex items-center gap-1 hover:underline"
-                    >
-                      <Globe className="w-3 h-3" />
-                      <span>Site</span>
-                    </a>
-                  )}
-                  {lead.googleMapsLink && (
-                    <a
-                      href={lead.googleMapsLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-teal-700 hover:text-teal-900 font-bold flex items-center gap-1 hover:underline"
-                    >
-                      <MapPin className="w-3 h-3" />
-                      <span>Google Maps</span>
-                    </a>
-                  )}
-                </div>
-              </div>
+              {/* Ticket Estimado */}
+              {lead.estimatedBudget && (
+                <span className="text-[10px] font-bold text-slate-700 bg-white/80 px-2 py-0.5 rounded border border-slate-200 shrink-0">
+                  Ticket: {lead.estimatedBudget}
+                </span>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* SUBETAPA 3: DOSSIÊ & NOTAS */}
-          {subStep === 'dossier' && (
-            <div className="space-y-2.5 animate-fadeIn">
-              {/* Bloco de Anotações */}
-              <div 
-                onClick={() => onOpenNotes && onOpenNotes(lead)}
-                className="p-2.5 bg-amber-50 hover:bg-amber-100/70 border border-amber-200 rounded-xl text-xs text-amber-950 cursor-pointer transition-colors"
-                title="Clique para editar as anotações do lead"
+        {/* DECISOR E CANAIS DE CONTATO RÁPIDO */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          {/* Decisor & Telefone */}
+          <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-200/80 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Decisor Mapeado</span>
+              <span className="font-bold text-slate-900 truncate block text-xs" title={`${decisorName} (${decisorRole})`}>
+                {decisorName}
+              </span>
+              <span className="text-[11px] text-slate-500 truncate block">
+                {primaryPhone || 'Sem telefone cadastrado'}
+              </span>
+            </div>
+
+            {hasPhone && (
+              <button
+                type="button"
+                onClick={(e) => copyToClipboard(primaryPhone, 'phone', e)}
+                className="p-1.5 hover:bg-slate-200 text-slate-600 rounded transition-colors shrink-0"
+                title="Copiar Telefone"
               >
-                <div className="flex items-center justify-between font-bold text-xs text-amber-900 mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Anotações SDR</span>
-                  </span>
-                  <span className="text-[11px] text-amber-700 underline flex items-center gap-1 font-semibold">
-                    <Edit3 className="w-3 h-3" /> Editar
-                  </span>
-                </div>
-                <p className="text-xs text-slate-800 font-medium whitespace-pre-line leading-relaxed line-clamp-2">
-                  {lead.notes || 'Nenhuma anotação registrada ainda. Clique para adicionar notas da ligação.'}
-                </p>
-              </div>
+                {copiedField === 'phone' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            )}
+          </div>
 
-              {/* Ações Aprofundadas: Dossiê 360° e Cockpit */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => onOpenCriahubDrawer && onOpenCriahubDrawer(lead)}
-                  className="py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  title="Abrir Auditoria 360°, PageSpeed e Scripts de Alta Conversão"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Auditoria 360° Completa</span>
-                </button>
-
-                {onOpenCockpit && (
-                  <button
-                    type="button"
-                    onClick={() => onOpenCockpit(lead)}
-                    className="py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    title="Abrir Cockpit 1-a-1 focado neste lead"
-                  >
-                    <Compass className="w-3.5 h-3.5 text-amber-200" />
-                    <span>Cockpit SDR 1-a-1</span>
-                  </button>
-                )}
-              </div>
+          {/* E-mail & Copiar */}
+          <div className="p-2 bg-slate-50/80 rounded-lg border border-slate-200/80 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">E-mail Principal</span>
+              <span className="font-bold text-slate-900 truncate block text-xs" title={targetEmail || 'E-mail a enriquecer'}>
+                {targetEmail || 'E-mail sob consulta'}
+              </span>
+              <span className="text-[11px] text-slate-500 truncate block">
+                {hasEmail ? 'Verificado p/ envio direto' : 'Clique no Raio-X para buscar'}
+              </span>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* 4. RODAPÉ DE STATUS E OPERAÇÃO */}
-      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-600">Status:</span>
-          <select 
-            value={lead.status}
-            onChange={(e) => onUpdateStatus(lead.id, e.target.value as Lead['status'])}
-            className={`text-xs uppercase font-black px-2.5 py-1 rounded-lg cursor-pointer border ring-1 ring-inset focus:ring-2 outline-none shadow-2xs ${getStatusColor(lead.status)}`}
-          >
-            <option value="new">📥 Novo</option>
-            <option value="contacted">💬 Contactado</option>
-            <option value="qualified">🤝 Qualificado</option>
-            <option value="ignored">🚫 Desqualificado</option>
-          </select>
+            {hasEmail && (
+              <button
+                type="button"
+                onClick={(e) => copyToClipboard(targetEmail, 'email', e)}
+                className="p-1.5 hover:bg-slate-200 text-slate-600 rounded transition-colors shrink-0"
+                title="Copiar E-mail"
+              >
+                {copiedField === 'email' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          <button 
-            type="button"
-            onClick={() => onOpenOmnichannel(lead, 'email')}
-            className="p-1.5 text-slate-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-            title="E-mail AIDA/PAS"
-          >
-            <Mail className="w-4 h-4" />
-          </button>
-
-          {onOpenGroqTriage && (
-            <button 
-              type="button"
-              onClick={() => onOpenGroqTriage(lead)}
-              className="p-1.5 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
-              title="Triagem Llama-3 & Webhook"
+        {/* CANAIS DIGITAIS 1-CLIQUE: WEBSITE, GOOGLE MAPS, YELP, WHATSAPP, GMAIL, INSTAGRAM, LINKEDIN */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-1" onClick={e => e.stopPropagation()}>
+          {/* Website Real ou Busca Oficial no Google */}
+          {isRealWebsite ? (
+            <a
+              href={effectiveWebsite}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors shadow-xs"
+              title={`Abrir Website Oficial: ${effectiveWebsite}`}
             >
-              <Cpu className="w-4 h-4" />
+              <Globe className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Website</span>
+              <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+            </a>
+          ) : (
+            <a
+              href={`https://www.google.com/search?q=${encodeURIComponent(`"${cleanBrand}" "${lead.city || ''}"`)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md transition-colors"
+              title="Buscar empresa no Google com 1 clique (busca oficial limpa)"
+            >
+              <Globe className="w-3.5 h-3.5 text-amber-600" />
+              <span>Buscar no Google</span>
+              <ExternalLink className="w-2.5 h-2.5 text-amber-500" />
+            </a>
+          )}
+
+          {/* Google Maps */}
+          {lead.googleMapsUrl && (
+            <a
+              href={lead.googleMapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors"
+              title="Ver Perfil no Google Maps"
+            >
+              <MapPin className="w-3.5 h-3.5 text-red-500" />
+              <span>Maps</span>
+              <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+            </a>
+          )}
+
+          {/* Yelp Business Reviews (se disponível) */}
+          {lead.yelpUrl && (
+            <a
+              href={lead.yelpUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md transition-colors"
+              title="Ver Perfil no Yelp Business Reviews"
+            >
+              <Star className="w-3.5 h-3.5 text-rose-500" />
+              <span>Yelp</span>
+              <ExternalLink className="w-2.5 h-2.5 text-rose-400" />
+            </a>
+          )}
+
+          {/* WhatsApp Direto 1-Clique */}
+          {hasPhone && (
+            <button
+              type="button"
+              onClick={handleWhatsAppClick}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md transition-colors"
+              title="Abrir WhatsApp com mensagem consultiva pronta"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+              <span>WhatsApp</span>
             </button>
           )}
 
-          <button 
-            type="button"
-            onClick={() => onDelete(lead.id)} 
-            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
-            title="Remover Lead"
+          {/* Gmail Direto 1-Clique */}
+          {hasEmail && (
+            <button
+              type="button"
+              onClick={handleOpenGmail}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-md transition-colors"
+              title="Abrir diretamente no Gmail já com Assunto e Corpo PT-PT preenchidos"
+            >
+              <Send className="w-3.5 h-3.5 text-sky-600" />
+              <span>Gmail</span>
+            </button>
+          )}
+
+          {/* Instagram Verificado / Link Real Operacional */}
+          <a
+            href={
+              lead.socials?.instagram && lead.socials.instagram.startsWith('http')
+                ? lead.socials.instagram
+                : resolvedReal.instagram
+                ? resolvedReal.instagram
+                : `https://www.google.com/search?q=${encodeURIComponent(`site:instagram.com "${cleanBrand}" "${lead.city || ''}"`)}`
+            }
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-pink-700 bg-pink-50 hover:bg-pink-100 border border-pink-200 rounded-md transition-colors"
+            title="Ver perfil oficial no Instagram"
           >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            <Instagram className="w-3.5 h-3.5 text-pink-600" />
+            <span>Instagram</span>
+            <ExternalLink className="w-2.5 h-2.5 text-pink-400" />
+          </a>
+
+          {/* LinkedIn Decisor / Empresa (Zero 404) */}
+          <a
+            href={
+              lead.decisionMaker?.linkedin && lead.decisionMaker.linkedin.startsWith('http')
+                ? lead.decisionMaker.linkedin
+                : lead.socials?.linkedin && lead.socials.linkedin.startsWith('http')
+                ? lead.socials.linkedin
+                : `https://www.google.com/search?q=${encodeURIComponent(`site:linkedin.com/company/ "${lead.name}" "${lead.city || ''}"`)}`
+            }
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+            title="Ver perfil oficial ou decisor no LinkedIn"
+          >
+            <Linkedin className="w-3.5 h-3.5 text-blue-600" />
+            <span>LinkedIn</span>
+            <ExternalLink className="w-2.5 h-2.5 text-blue-400" />
+          </a>
         </div>
+
+        {/* PONTO CRÍTICO / OPORTUNIDADE EM 1 LINHA */}
+        {lead.keyFlaws && lead.keyFlaws.length > 0 && (
+          <div className="text-[11px] font-medium text-slate-600 flex items-center gap-1.5 truncate pt-0.5">
+            <span className="text-amber-500 font-bold shrink-0">⚡ Oportunidade:</span>
+            <span className="truncate">{lead.keyFlaws[0]}</span>
+          </div>
+        )}
       </div>
 
-      {/* Modal de Abordagem IA em Tempo Real (opcional) */}
-      {showAiOutreachModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
-          <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-200 p-4 sm:p-6">
-            <RealtimeSdrOutreachPanel 
-              lead={lead} 
-              onClose={() => setShowAiOutreachModal(false)}
-              compact={false}
-            />
+      {/* RODAPÉ: AÇÃO PRINCIPAL E ACESSO AO DOSSIÊ DETALHADO (100% OTIMIZADO PARA MOBILE) */}
+      <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-2.5" onClick={e => e.stopPropagation()}>
+        {/* Ações Primárias: Ligar / WhatsApp / Gmail + Dossiê High-Ticket */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+          {/* Botão Primário baseado na melhor decisão (Ligar vs E-mail vs WhatsApp) */}
+          {sdrActionType === 'CALL' && hasPhone ? (
+            <button
+              type="button"
+              onClick={handleStartCall}
+              className="w-full min-h-[46px] px-3 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs transition-all"
+            >
+              <PhoneCall className="w-4 h-4" />
+              <span>Ligar p/ Decisor</span>
+            </button>
+          ) : sdrActionType === 'WHATSAPP' && hasPhone ? (
+            <button
+              type="button"
+              onClick={handleWhatsAppClick}
+              className="w-full min-h-[46px] px-3 py-2 bg-teal-600 hover:bg-teal-700 active:scale-[0.98] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs transition-all"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp Direto</span>
+            </button>
+          ) : hasEmail ? (
+            <button
+              type="button"
+              onClick={handleOpenGmail}
+              className="w-full min-h-[46px] px-3 py-2 bg-sky-600 hover:bg-sky-700 active:scale-[0.98] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs transition-all"
+            >
+              <Send className="w-4 h-4" />
+              <span>Abrir no Gmail</span>
+            </button>
+          ) : hasPhone ? (
+            <button
+              type="button"
+              onClick={handleStartCall}
+              className="w-full min-h-[46px] px-3 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs transition-all"
+            >
+              <PhoneCall className="w-4 h-4" />
+              <span>Ligar p/ Telefone</span>
+            </button>
+          ) : null}
+
+          {/* Botão Ver Dossiê Completo (Raio-X High-Ticket) */}
+          <button
+            type="button"
+            onClick={handleOpenDetailedDossier}
+            className={`w-full min-h-[46px] px-3 py-2 bg-indigo-50 hover:bg-indigo-100 active:scale-[0.98] text-indigo-950 border border-indigo-200/90 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all shadow-2xs ${
+              !hasPhone && !hasEmail ? 'sm:col-span-2' : ''
+            }`}
+            title="Abrir Dossiê High-Ticket, Proposta Comercial de €599 e €997, Calculadora ROI e Scripts ProspecPT"
+          >
+            <Sparkles className="w-4 h-4 text-indigo-600" />
+            <span>Dossiê High-Ticket (€599-€997)</span>
+          </button>
+        </div>
+
+        {/* Rodapé Secundário: Status Contactado + Ações (Bloquear RGPD, Excluir) */}
+        <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+          <div>
+            {isContacted ? (
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Contactado</span>
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-400 font-medium">
+                Pressione para ver dossiê 360°
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleToggleSuppression}
+              className={`min-h-[40px] min-w-[40px] p-2 rounded-xl flex items-center justify-center transition-colors ${
+                isSuppressed 
+                  ? 'text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200' 
+                  : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent'
+              }`}
+              title={isSuppressed ? "Desbloquear Contacto (Remover da lista de supressão RGPD)" : "Bloquear RGPD (STOP) — Suprimir contacto para evitar multas"}
+              aria-label="Bloquear ou desbloquear RGPD"
+            >
+              <ShieldAlert className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onDelete(lead.id)}
+              className="min-h-[40px] min-w-[40px] p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-transparent hover:border-rose-100 flex items-center justify-center transition-colors"
+              title="Remover Lead"
+              aria-label="Remover Lead"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

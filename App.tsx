@@ -63,7 +63,7 @@ import { SearchBatchSelector } from './components/SearchBatchSelector';
 import { LeadNotesModal } from './components/LeadNotesModal';
 import { LeadAnalysisDrawer } from './components/LeadAnalysisDrawer';
 import { ScraperStudioModal } from './components/ScraperStudioModal';
-import { calculateLeadRoiRecommendation } from './services/roiRecommendationService';
+import { calculateLeadRoiRecommendation, evaluateLeadPurchasePower } from './services/roiRecommendationService';
 import { RealEstateScraperModal } from './components/RealEstateScraperModal';
 import { ColdCallHunterModal } from './components/ColdCallHunterModal';
 import { FastDialerFocusModal } from './components/FastDialerFocusModal';
@@ -72,6 +72,7 @@ import { OmniAssertiveValidatorService } from './services/omniAssertiveValidator
 import { searchApolloPeople, convertApolloPersonToLead, getApolloApiKey } from './services/apolloService';
 import { searchFreeApolloB2bLeads, searchGoogleMapsWithOsintDecisors } from './services/freeB2bProspectorService';
 import { searchSimultaneousMultiSourceLeads } from './services/simultaneousProspectorService';
+import { hydrateAndEnrichLeadsWithRealData } from './services/nicheIntelligenceService';
 import { UserAccount, UserQuotaUsage } from './types/authAndQuotaTypes';
 import { 
   getCurrentUser, setCurrentUser as persistCurrentUser, 
@@ -86,6 +87,8 @@ import { LoginPage } from './components/admin/LoginPage';
 import { AiGeminiChatCopilot } from './components/AiGeminiChatCopilot';
 import { AppBottomNav, MainNavTab } from './components/AppBottomNav';
 import { AnalyticsDashboardView } from './components/AnalyticsDashboardView';
+import { RgpdSuppressionModal } from './components/RgpdSuppressionModal';
+import { MobileCommandSheet } from './components/MobileCommandSheet';
 
 // --- Utilitários de deduplicação/merge de leads ---
 const normalizeName = (name: string) => name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -282,7 +285,8 @@ export function App() {
       }
       return l;
     });
-    return OmniAssertiveValidatorService.enrichLeadsWithAudit(normalized, getSavedCountry());
+    const hydrated = hydrateAndEnrichLeadsWithRealData(normalized);
+    return OmniAssertiveValidatorService.enrichLeadsWithAudit(hydrated, getSavedCountry());
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -298,8 +302,9 @@ export function App() {
     extractedCount: leads.length
   });
 
-  // View & UI Modals State (Default to 'copilot_chat' conversational AI as requested)
-  const [activeNavTab, setActiveNavTab] = useState<MainNavTab>('copilot_chat');
+  // View & UI Modals State (Default to 'b2b_leads' search screen as requested)
+  const [activeNavTab, setActiveNavTab] = useState<MainNavTab>('b2b_leads');
+  const [isRgpdModalOpen, setIsRgpdModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table' | 'kanban'>('cards');
   const [isCockpitOpen, setIsCockpitOpen] = useState(false);
   const [cockpitLeadIndex, setCockpitLeadIndex] = useState(0);
@@ -449,6 +454,20 @@ export function App() {
       saveLeadsCache(leads);
     }
   }, [leads]);
+
+  // One-time hydration of stored batches and leads with verified real websites and contacts
+  useEffect(() => {
+    const currentBatches = getSearchBatches();
+    if (currentBatches && currentBatches.length > 0) {
+      const updatedBatches = currentBatches.map(b => ({
+        ...b,
+        leads: hydrateAndEnrichLeadsWithRealData(b.leads || [])
+      }));
+      saveSearchBatches(updatedBatches);
+      setBatches(updatedBatches);
+    }
+    setLeads(prev => hydrateAndEnrichLeadsWithRealData(prev));
+  }, []);
 
   // Execute Prospecting Pipeline (Isolated per search batch)
   const handleSearch = async (
@@ -656,7 +675,7 @@ export function App() {
           batchName: batchName,
           capturedAt: formattedDate,
           originApi: 'rapidapi_google_maps' as const,
-          originApiLabel: lead.originApiLabel || `Google Maps Scraping Real (${gmapsRes.engineUsed || 'Motor Zero-Block'}) + OSINT Decisores`
+          originApiLabel: lead.originApiLabel || `Google Maps Scraping Real (${engineUsed || 'Motor Zero-Block'}) + OSINT Decisores`
         }));
 
         setLoadingStep('3/3 Sintetizando Diagnóstico BANT+, Tech Stack e Roteiros SDR Omnichannel...');
@@ -1545,6 +1564,12 @@ export function App() {
           if (leadVerdict !== filters.roiVerdict) return false;
         }
 
+        // Filtro High-Ticket (€599 a €997/mês): Empresas de porte, infraestrutura e alto poder de compra
+        if (filters.highTicketOnly) {
+          const power = evaluateLeadPurchasePower(lead);
+          if (power === 'BAIXO_MICRO' || power === 'SEM_BUDGET') return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -1665,8 +1690,48 @@ export function App() {
                 </div>
               </div>
 
-              {/* Consolidated Navigation & Control Hub */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* 📱 Mobile Actions Header (Zero Button Overlap, Clean & Touch Friendly) */}
+              <div className="flex md:hidden items-center gap-2">
+                {/* Quick Country Switcher Pill */}
+                <button
+                  type="button"
+                  onClick={() => setIsCountryModalOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 active:scale-95 transition-all"
+                  title="Alterar país de prospecção"
+                >
+                  <span className="text-sm leading-none">{getCurrencyConfig(country).flag}</span>
+                  <span className="text-[11px] font-bold">{country}</span>
+                </button>
+
+                {/* 💎 Quick High-Ticket Filter Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setFilters(prev => ({ ...prev, highTicketOnly: !prev.highTicketOnly }))}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-black border transition-all flex items-center gap-1 active:scale-95 ${
+                    filters.highTicketOnly
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 ring-1 ring-emerald-400/30'
+                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                  }`}
+                  title="Filtrar apenas Leads High-Ticket (€599-€997)"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${filters.highTicketOnly ? 'text-amber-300' : 'text-slate-400'}`} />
+                  <span className="text-[11px]">{filters.highTicketOnly ? 'High-Ticket' : 'Alto Ticket'}</span>
+                </button>
+
+                {/* 📱 Full Mobile Menu Trigger */}
+                <button
+                  id="btn-mobile-menu-toggle"
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 flex items-center justify-center transition-all active:scale-95"
+                  aria-label="Abrir Menu Completo Mobile"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 💻 Desktop / Tablet Consolidated Navigation & Control Hub */}
+              <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
                 {/* Visual Mode Toggle (Simple vs Pro) */}
                 <button
                   id="btn-toggle-simple-view"
@@ -1960,113 +2025,9 @@ export function App() {
                   )}
                 </div>
 
-                {/* 📱 Mobile Menu Toggle (Visible only on mobile screens) */}
-                <button
-                  id="btn-mobile-menu-toggle"
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="md:hidden p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
-                  aria-label="Abrir Menu Mobile"
-                >
-                  {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-                </button>
               </div>
 
             </div>
-
-            {/* 📱 Responsive Mobile Drawer Navigation */}
-            {isMobileMenuOpen && (
-              <div className="md:hidden mt-3 pt-3 border-t border-slate-800 animate-in slide-in-from-top-2 duration-200 space-y-3 pb-2">
-                {/* User Snapshot in Mobile Drawer */}
-                <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
-                      {currentUser.name.slice(0, 1).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white">{currentUser.name}</div>
-                      <div className="text-[10px] text-indigo-300">{currentUser.companyName}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setIsAdminManagementOpen(true);
-                      }}
-                      className="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-lg shadow-sm"
-                    >
-                      Admin
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setIsAuthModalOpen(true);
-                      }}
-                      className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
-                      title="Trocar Usuário"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="p-1.5 bg-rose-950/80 hover:bg-rose-900 text-rose-300 rounded-lg border border-rose-800/60"
-                      title="Sair do Sistema"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mobile Tools Grid */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setIsProfileModalOpen(true);
-                    }}
-                    className="p-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-left flex items-center gap-2 text-slate-200"
-                  >
-                    <Briefcase className="w-4 h-4 text-indigo-400" />
-                    <span>Site & Nichos</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setIsWebhookModalOpen(true);
-                    }}
-                    className="p-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-left flex items-center gap-2 text-purple-200"
-                  >
-                    <Send className="w-4 h-4 text-purple-400" />
-                    <span>CRM & Webhook</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setIsScraperStudioOpen(true);
-                    }}
-                    className="p-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-left flex items-center gap-2 text-amber-200"
-                  >
-                    <Terminal className="w-4 h-4 text-amber-400" />
-                    <span>Scraper Studio</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setSettingsInitialTab('share');
-                      setIsSettingsOpen(true);
-                    }}
-                    className="p-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-left flex items-center gap-2 text-emerald-200"
-                  >
-                    <Share2 className="w-4 h-4 text-emerald-400" />
-                    <span>Link com APIs</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </header>
       )}
@@ -2222,6 +2183,16 @@ export function App() {
             >
               <BarChart3 className="w-4 h-4 text-emerald-300" />
               <span>Relatórios & Métricas</span>
+            </button>
+
+            {/* 5. Conformidade RGPD & Lista STOP */}
+            <button
+              onClick={() => setIsRgpdModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 shrink-0 text-rose-300 hover:text-white hover:bg-rose-950/60 border border-rose-500/30"
+              title="Gerenciar lista de supressão RGPD e contactos que solicitaram STOP"
+            >
+              <ShieldCheck className="w-4 h-4 text-rose-400" />
+              <span>RGPD (Lista STOP)</span>
             </button>
           </div>
 
@@ -2559,7 +2530,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={handleCancelSearch}
-                    className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow transition-all flex items-center justify-center gap-1.5"
+                    className="w-full min-h-[48px] py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow transition-all flex items-center justify-center gap-1.5 active:scale-95"
                   >
                     <XCircle className="w-4 h-4" />
                     Cancelar Busca
@@ -2568,7 +2539,7 @@ export function App() {
                   <button
                     type="submit"
                     id="btn-start-prospecting"
-                    className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
+                    className="w-full min-h-[48px] py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
                   >
                     <Sparkles className="w-4 h-4" />
                     {searchParams.keyword.trim() ? "Prospecção & Match" : "Auto Prospecção"}
@@ -2594,7 +2565,7 @@ export function App() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none touch-pan-x">
                 <button
                   type="button"
                   onClick={() => {
@@ -2925,6 +2896,24 @@ export function App() {
               {/* Left Filters */}
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 
+                {/* 💎 Botão de Filtro Rápido High-Ticket (€599 a €997/mês) */}
+                <button
+                  type="button"
+                  onClick={() => setFilters(prev => ({ ...prev, highTicketOnly: !prev.highTicketOnly }))}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 border shadow-2xs ${
+                    filters.highTicketOnly
+                      ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white border-emerald-400 ring-2 ring-emerald-400/40 shadow-sm'
+                      : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-indigo-200'
+                  }`}
+                  title="Filtrar apenas empresas de grande porte com capacidade financeira comprovada para contratar os planos de €599 e €997/mês"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${filters.highTicketOnly ? 'text-amber-300' : 'text-indigo-600'}`} />
+                  <span>💎 Leads High-Ticket (€599-€997)</span>
+                  {filters.highTicketOnly && (
+                    <span className="text-[10px] bg-white/20 px-1.5 rounded font-black text-white">Ativo</span>
+                  )}
+                </button>
+
                 {/* ICP Tier Filter Tabs */}
                 <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
                   <button
@@ -4102,6 +4091,12 @@ export function App() {
         />
       )}
 
+      {/* 🛡️ RGPD & Privacy Suppression Modal (STOP Opt-Out List) */}
+      <RgpdSuppressionModal
+        isOpen={isRgpdModalOpen}
+        onClose={() => setIsRgpdModalOpen(false)}
+      />
+
       {/* 📱 Mobile & Tablet Optimized Floating Bottom Navigation Bar */}
       <AppBottomNav
         activeTab={activeNavTab}
@@ -4112,10 +4107,61 @@ export function App() {
         }}
         leadsCount={leads.length}
         realEstateCount={realEstateLeads.length}
+        isHighTicketActive={Boolean(filters.highTicketOnly)}
+        onToggleHighTicket={() => setFilters(prev => ({ ...prev, highTicketOnly: !prev.highTicketOnly }))}
+        onOpenSearch={() => {
+          setActiveNavTab('b2b_leads');
+          setSearchDomain('companies');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          const inputEl = document.getElementById('search-keyword-input');
+          if (inputEl) inputEl.focus();
+        }}
+        onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         onOpenTools={() => setIsCockpitOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenAdmin={() => setIsAdminManagementOpen(true)}
         userRole={currentUser?.role}
+      />
+
+      {/* 📱 Full Mobile Command Center Modal (Zero Menus Ocultos / Zero Cortes / Acesso Completo) */}
+      <MobileCommandSheet
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        currentUser={currentUser}
+        currentQuotaUsage={currentQuotaUsage}
+        country={country}
+        countryFlag={getCurrencyConfig(country).flag}
+        leadsCount={leads.length}
+        realEstateCount={realEstateLeads.length}
+        isHighTicketActive={Boolean(filters.highTicketOnly)}
+        onToggleHighTicket={() => setFilters(prev => ({ ...prev, highTicketOnly: !prev.highTicketOnly }))}
+        onSelectNavTab={(tab) => {
+          setActiveNavTab(tab);
+          if (tab === 'b2b_leads') setSearchDomain('companies');
+          if (tab === 'real_estate') setSearchDomain('real_estate');
+        }}
+        onOpenSearch={() => {
+          setActiveNavTab('b2b_leads');
+          setSearchDomain('companies');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          const inputEl = document.getElementById('search-keyword-input');
+          if (inputEl) inputEl.focus();
+        }}
+        onOpenCockpit={() => handleOpenCockpit()}
+        onOpenCadence={() => setIsCadenceQueueOpen(true)}
+        onOpenSettings={(tab) => {
+          if (tab) setSettingsInitialTab(tab as any);
+          setIsSettingsOpen(true);
+        }}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenWebhook={() => setIsWebhookModalOpen(true)}
+        onOpenScraperStudio={() => setIsScraperStudioOpen(true)}
+        onOpenRgpd={() => setIsRgpdModalOpen(true)}
+        onOpenCountryModal={() => setIsCountryModalOpen(true)}
+        onOpenAdmin={() => setIsAdminManagementOpen(true)}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onExportCsv={handleExportCSV}
+        onLogout={handleLogout}
       />
 
     </div>

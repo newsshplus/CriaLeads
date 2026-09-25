@@ -11,6 +11,7 @@ import { crossMatchLeadRecords } from './matchingEngineService';
 import { generateDecisionMakerCandidates, generateExecutiveSummaryReport } from './aiDecisionMatcherService';
 import { generateRealisticLeadsList, generateRealisticLead } from './nicheIntelligenceService';
 import { enrichRealBusinessesRuleBased } from './agentReachService';
+import { enrichLeadWithKitAluno } from './prospeccaoKitService';
 
 export interface FreeB2bSearchParams {
   keyword: string;
@@ -504,7 +505,10 @@ RETORNE ESTRITAMENTE UM JSON ARRAY COM OS ${count} LEADS. SEM TEXTO ANTES OU DEP
       partialLead.objectionCrusher = buildObjectionCrusherMatrix(partialLead, businessProfile);
       partialLead.cadence = buildCadenceMaster(partialLead);
 
-      return partialLead;
+      // Integração com Kit Aluno (Score Matemático, Marketing Regex, Aderência de Nicho e Meta Ads)
+      const enrichedKit = enrichLeadWithKitAluno(partialLead, country, keyword);
+
+      return enrichedKit;
     });
 
     const searchSummary = `Foram mapeadas ${leads.length} empresas com Donos, Gerentes e links OSINT (LinkedIn, Google e Indeed) para "${keyword}" em ${city}.`;

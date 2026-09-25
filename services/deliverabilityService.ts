@@ -119,6 +119,9 @@ export function validateEmailDeliverability(email?: string, website?: string): {
   };
 }
 
+import { getSavedCountry } from "./countryService";
+import { generateLocalizedHumanEmail, isPortugalTarget } from "./ptPtOutreachService";
+
 /**
  * Converte qualquer texto de email em Plain Text 100% puro para maximizar
  * a chegada na caixa primária do Gmail e Outlook (sem HTML, sem botões, sem tabelas).
@@ -127,8 +130,11 @@ export function convertToPlainTextEmail(
   subject: string,
   rawBody: string,
   decisionMakerName: string,
-  companyName: string
+  companyName: string,
+  targetCountry?: string
 ): { subject: string; body: string } {
+  const isPt = isPortugalTarget(targetCountry || getSavedCountry());
+
   // Limpa tags HTML se houver
   let plain = rawBody
     .replace(/<br\s*[\/]?>/gi, '\n')
@@ -142,10 +148,12 @@ export function convertToPlainTextEmail(
   const { cleanedText } = sanitizeSpamWords(plain);
   plain = cleanedText;
 
-  // Garante que haja um rodapé profissional limpo e neutro
-  const signature = `\n\n---\nAtenciosamente,\nEquipe de Estratégia Comercial\n\nCaso não queira receber mais análises sobre ${companyName}, basta responder "desinscrever".`;
+  // Garante que haja um rodapé profissional limpo, cortês e adaptado ao idioma do país
+  const signature = isPt
+    ? `\n\nCom os melhores cumprimentos,\nEquipa de Consultoria & Estratégia Comercial\nCriaHub Portugal\n\n(Caso prefira não receber novas notas sobre este tema, responda simplesmente com "remover".)`
+    : `\n\nAtenciosamente,\nEquipe de Estratégia Comercial\nCriaHub\n\nCaso não deseje mais receber análises comerciais sobre a ${companyName}, basta responder "desinscrever".`;
 
-  if (!plain.includes('Atenciosamente') && !plain.includes('desinscrever')) {
+  if (!plain.includes('cumprimentos') && !plain.includes('Atenciosamente') && !plain.includes('remover') && !plain.includes('desinscrever')) {
     plain += signature;
   }
 
@@ -287,9 +295,10 @@ export function buildDeliverabilityGuardian(lead: Lead): DeliverabilityGuardian 
 
   // 2. Email Hygiene & Plain Text Conversion
   const emailDeliverability = validateEmailDeliverability(emailToUse, lead.website);
-  const rawEmailBody = lead.outreach?.email?.bodyAida || lead.outreach?.email?.bodyPas || `Olá ${decisionMakerName},\n\nIdentifiquei uma oportunidade de melhoria na operação da ${companyName}.`;
-  const rawSubject = lead.outreach?.email?.subject || `Análise operacional para ${companyName}`;
-  const cleanPlainText = convertToPlainTextEmail(rawSubject, rawEmailBody, decisionMakerName, companyName);
+  const localizedHuman = generateLocalizedHumanEmail(lead, targetCountry);
+  const rawEmailBody = localizedHuman.body;
+  const rawSubject = localizedHuman.subject;
+  const cleanPlainText = convertToPlainTextEmail(rawSubject, rawEmailBody, decisionMakerName, companyName, targetCountry);
 
   return {
     whatsappShield: {

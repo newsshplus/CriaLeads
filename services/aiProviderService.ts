@@ -12,7 +12,7 @@ const AI_CONFIG_KEY = "architect_ai_engine_config_v2";
  */
 export function getAiConfig(): AiEngineConfig {
   try {
-    const raw = localStorage.getItem(AI_CONFIG_KEY);
+    const raw = typeof window !== 'undefined' && window.localStorage ? localStorage.getItem(AI_CONFIG_KEY) : null;
     const customPrompts = getCustomPrompts();
     const rapidKeys = getRapidApiKeysPool();
     const rapidMode = getRapidApiRotationMode();

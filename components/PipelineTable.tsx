@@ -430,6 +430,51 @@ const PipelineTable: React.FC<PipelineTableProps> = ({
                           <span>📅</span>
                           <span>{lead.cadenceDayLabel || `Dia ${lead.cadenceDay}`}</span>
                         </span>
+
+                        {/* Kit Aluno Score Badge */}
+                        {lead.kitAluno && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onOpenCriahubDrawer) onOpenCriahubDrawer(lead);
+                            }}
+                            className={`inline-flex items-center text-[9px] font-black px-1.5 py-0.2 rounded border gap-0.5 cursor-pointer hover:opacity-80 transition-opacity ${
+                              lead.kitAluno.score.classificacao === 'A' ? 'bg-emerald-100 text-emerald-950 border-emerald-300' :
+                              lead.kitAluno.score.classificacao === 'B' ? 'bg-blue-100 text-blue-950 border-blue-300' :
+                              lead.kitAluno.score.classificacao === 'C' ? 'bg-amber-100 text-amber-950 border-amber-300' :
+                              'bg-rose-100 text-rose-950 border-rose-300'
+                            }`}
+                            title={lead.kitAluno.score.justificativaNota}
+                          >
+                            <span>🎓 Classe {lead.kitAluno.score.classificacao} ({lead.kitAluno.score.score} pts)</span>
+                          </button>
+                        )}
+
+                        {/* Kit Aluno Site Morto */}
+                        {lead.kitAluno?.score.siteMorto && (
+                          <span 
+                            className="inline-flex items-center text-[9px] text-white bg-rose-600 px-1.5 py-0.2 rounded font-black animate-pulse"
+                            title="Site cadastrado no Google Maps está fora do ar!"
+                          >
+                            🚨 Site Fora do Ar
+                          </span>
+                        )}
+
+                        {/* Meta Ads Library Link */}
+                        {lead.kitAluno?.marketing.metaAdsUrl && (
+                          <a
+                            href={lead.kitAluno.marketing.metaAdsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="inline-flex items-center text-[9px] text-blue-800 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.2 rounded font-bold border border-blue-200 gap-0.5"
+                            title="Biblioteca de Anúncios Meta"
+                          >
+                            <span>Meta Ads</span>
+                            <ExternalLink className="w-2 h-2" />
+                          </a>
+                        )}
                       </div>
                       
                       <div className="text-[11px] text-slate-600 flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -820,13 +865,14 @@ const PipelineTable: React.FC<PipelineTableProps> = ({
                         </button>
                       )}
 
-                      {/* ✨ CriaHub 360° Drawer */}
+                      {/* 💎 Dossiê High-Ticket (€599 - €997) */}
                       <button
                         onClick={() => onOpenCriahubDrawer && onOpenCriahubDrawer(lead)}
-                        className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-950 rounded-xl border border-indigo-200 transition-colors shadow-2xs"
-                        title="Auditoria Completa 360° & Scripts de Conversão"
+                        className="px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-950 rounded-xl border border-indigo-200 transition-colors shadow-2xs font-bold text-xs flex items-center gap-1"
+                        title="Abrir Dossiê High-Ticket, Proposta Comercial €599 e €997, Calculadora ROI e Scripts ProspecPT"
                       >
-                        <Sparkles className="w-4 h-4 text-indigo-600" />
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                        <span className="hidden xl:inline">Dossiê €599-€997</span>
                       </button>
 
                       {/* ✉️ E-mail Outbound */}

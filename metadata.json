@@ -1,6 +1,6 @@
 {
   "name": "Architect-Prospector AI",
-  "description": "Sistema autônomo de prospecção dual (B2B Empresas & Imóveis de Particulares FSBO) com Idealista, OLX, Fotocasa, ZAP, Apollo.io, Google Maps, Lotes de pesquisa, ICP Score, scripts SDR e quebra de objeções.",
+  "description": "Sistema autônomo de prospecção dual (B2B Empresas & Imóveis FSBO) com Kit de Prospecção Aluno integrado (Score 0-100 transparente, auditoria de marketing regex, detecção de Meta Ads, aderência de nicho e foco em Portugal/Internacional).",
   "requestFramePermissions": [
     "microphone",
     "camera",

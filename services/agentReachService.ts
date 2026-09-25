@@ -584,14 +584,31 @@ export async function searchViaDuckDuckGoHtml(
     // Endpoint público HTML leve do DuckDuckGo que não aplica bot-block em servidores
     const url = `https://html.duckduckgo.com/html/?q=${encodedQuery}`;
     
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8"
-      },
-      signal
-    });
+    // Timeout seguro de 4.5s para evitar bloqueios ou esperas infinitas na rede
+    const timeoutController = new AbortController();
+    const timer = setTimeout(() => timeoutController.abort(), 4500);
+
+    const onParentAbort = () => timeoutController.abort();
+    if (signal) {
+      signal.addEventListener('abort', onParentAbort);
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8"
+        },
+        signal: timeoutController.signal
+      });
+    } finally {
+      clearTimeout(timer);
+      if (signal) {
+        signal.removeEventListener('abort', onParentAbort);
+      }
+    }
 
     if (!res.ok) return [];
 

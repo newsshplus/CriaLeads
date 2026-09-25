@@ -28,9 +28,13 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
   onSaveProfile,
   onSelectNicheForSearch
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'high_ticket_niches' | 'ai_keys'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'high_ticket_niches' | 'ai_keys' | 'rgpd_identity'>('profile');
   const [formData, setFormData] = useState<BusinessProfile>({
     ...profile,
+    senderName: profile.senderName || 'Nivaldo Freitas',
+    senderRole: profile.senderRole || 'Estrategista Digital & Consultoria Digital Independente',
+    useGenericSenderOnFirstContact: profile.useGenericSenderOnFirstContact ?? true,
+    rgpdOptOutNotice: profile.rgpdOptOutNotice || 'Aviso de Privacidade & RGPD: Esta comunicação destina-se estritamente ao âmbito profissional B2B. Caso não pretenda receber futuros contactos ou pretenda a eliminação imediata dos seus dados, responda a esta mensagem com a palavra "STOP". O seu endereço será automaticamente bloqueado no nosso sistema.',
     recommendedHighTicketNiches: profile.recommendedHighTicketNiches?.length ? profile.recommendedHighTicketNiches : DEFAULT_HIGH_TICKET_NICHES
   });
   const [aiConfig, setAiConfig] = useState<AiEngineConfig>(getAiConfig());
@@ -208,6 +212,18 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
             >
               <Key className="w-3.5 h-3.5 text-emerald-400" />
               3. Pool de 3 Chaves Groq & IA Fallback
+            </button>
+
+            <button
+              onClick={() => setActiveTab('rgpd_identity')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'rgpd_identity'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5 text-rose-300" />
+              4. Identidade de Contacto & RGPD (STOP)
             </button>
           </div>
         </div>
@@ -746,6 +762,115 @@ const BusinessProfileModal: React.FC<BusinessProfileModalProps> = ({
                 <p className="text-[10px] text-slate-400">
                   {GEMINI_MODELS.find(m => m.id === (aiConfig.geminiModel || 'gemini-3.6-flash'))?.note}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: IDENTIDADE DE CONTACTO & RGPD (STOP) */}
+          {activeTab === 'rgpd_identity' && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Header Banner */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-rose-950 text-white p-5 rounded-xl shadow-md border border-rose-800/40 space-y-3">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/40">
+                  <Shield className="w-3.5 h-3.5 text-rose-400" />
+                  Proteção Jurídica RGPD / LGPD & Abordagem Humanizada
+                </div>
+                <h3 className="text-base font-bold text-white">
+                  Identidade do Primeiro Contacto & Cláusula de Opt-Out "STOP"
+                </h3>
+                <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
+                  Para evitar multas de proteção de dados e aumentar a taxa de resposta, o primeiro contacto por e-mail e WhatsApp é enviado de forma <strong>genérica e consultiva</strong>, assinado exclusivamente pelo seu nome pessoal como estrategista independente, sem citar nome de agência. No rodapé, o destinatário pode responder <strong>"STOP"</strong> para ser bloqueado permanentemente.
+                </p>
+              </div>
+
+              {/* Form Fields */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-5 shadow-2xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Nome do Remetente */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Nome do Remetente (Assinatura do 1º Contacto)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.senderName || ''}
+                      onChange={e => setFormData({ ...formData, senderName: e.target.value })}
+                      placeholder="Nivaldo Freitas"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-rose-500 outline-none font-semibold text-slate-800"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Nome que aparecerá na assinatura do Gmail e na abertura do WhatsApp.
+                    </p>
+                  </div>
+
+                  {/* Cargo / Especialidade */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Título / Especialidade Profissional
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.senderRole || ''}
+                      onChange={e => setFormData({ ...formData, senderRole: e.target.value })}
+                      placeholder="Estrategista Digital & Consultoria Digital Independente"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-rose-500 outline-none font-semibold text-slate-800"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Posicionamento neutro e de alta autoridade para o primeiro contato.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Switch: Não citar agência no 1º contato */}
+                <div className="flex items-start gap-3 p-3.5 bg-rose-50/50 rounded-xl border border-rose-200">
+                  <input
+                    type="checkbox"
+                    id="useGenericSenderOnFirstContact"
+                    checked={formData.useGenericSenderOnFirstContact ?? true}
+                    onChange={e => setFormData({ ...formData, useGenericSenderOnFirstContact: e.target.checked })}
+                    className="mt-0.5 w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500"
+                  />
+                  <label htmlFor="useGenericSenderOnFirstContact" className="cursor-pointer text-xs text-slate-700">
+                    <strong className="text-slate-900 block font-bold">
+                      Modo Genérico Ativo no 1º Contacto (Recomendado)
+                    </strong>
+                    Não citar o nome da agência/empresa no primeiro contacto por e-mail ou WhatsApp. A abordagem é realizada estritamente pelo consultor/estrategista independente ({formData.senderName || 'Nivaldo Freitas'}), gerando muito mais proximidade e conformidade com o RGPD.
+                  </label>
+                </div>
+
+                {/* Texto do Aviso de Opt-Out RGPD */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
+                    <span>Aviso Legal de Privacidade & Instrução "STOP" (Rodapé do E-mail)</span>
+                    <span className="text-[10px] text-rose-600 font-normal">Conforme RGPD Art. 17º e 21º</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formData.rgpdOptOutNotice || ''}
+                    onChange={e => setFormData({ ...formData, rgpdOptOutNotice: e.target.value })}
+                    placeholder="Aviso de Privacidade & RGPD: Esta comunicação destina-se estritamente ao âmbito profissional B2B. Caso não pretenda receber futuros contactos ou pretenda a eliminação imediata dos seus dados, responda a esta mensagem com a palavra 'STOP'. O seu endereço será automaticamente bloqueado no nosso sistema."
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-rose-500 outline-none leading-relaxed text-slate-800"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Este texto é anexado no final de todas as abordagens diretas. Se o destinatário responder "STOP", o sistema bloqueia novos envios para sempre.
+                  </p>
+                </div>
+              </div>
+
+              {/* Preview Box */}
+              <div className="bg-slate-900 text-slate-200 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Exemplo de Assinatura Automática no Gmail & WhatsApp:
+                </span>
+                <div className="font-mono text-[11px] bg-slate-950 p-3 rounded-lg border border-slate-800 text-slate-300 whitespace-pre-wrap leading-relaxed">
+{`Com os melhores cumprimentos,
+
+${formData.senderName || 'Nivaldo Freitas'}
+${formData.senderRole || 'Estrategista Digital & Consultoria Digital Independente'}
+
+---
+${formData.rgpdOptOutNotice || 'Aviso de Privacidade & RGPD: Esta comunicação destina-se estritamente ao âmbito profissional B2B. Caso não pretenda receber futuros contactos ou pretenda a eliminação imediata dos seus dados, responda com a palavra "STOP".'}`}
+                </div>
               </div>
             </div>
           )}

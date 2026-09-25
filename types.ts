@@ -412,6 +412,8 @@ export interface OfferingServiceSynergy {
   whySdrJustifiedOrNot: string; // Justificativa financeira detalhada para a decisão do SDR
   // Novos campos estruturados orientados a falhas digitais e segurança de canais:
   detectedDigitalFlaws?: DigitalFlawOpportunity[]; // Todos os meios de serviços falhos e o que podemos ofertar
+}
+
 export interface RetainerMonthlyPlan {
   planName: string; // Nome do plano de mensalidade (ex: "Retainer Mensal: Otimização Contínua & Agente IA")
   monthlyFee: string; // Valor da mensalidade recorrente (ex: "R$ 2.400 / mês" ou "€750 / mês")
@@ -718,6 +720,7 @@ export interface Lead {
   rating: number;
   reviews: number;
   googleMapsLink?: string;
+  yelpUrl?: string;
   score: number; // General opportunity score (0-100)
 
   // Web Scraping & Social Discovery Enriquecido:
@@ -839,6 +842,69 @@ export interface Lead {
 
   // Módulo de Prospecção, Scraping e Simulação de Diálogos PT-PT (4 Blocos):
   ptPtDialogueSimulation?: PtPtSdrDialogueSimulation;
+
+  // 🎓 Funções Integradas do Kit de Prospecção (Score Matemático, Marketing Regex, Aderência de Nicho e Meta Ads):
+  kitAluno?: KitAlunoData;
+}
+
+export interface KitAlunoScoreSignal {
+  tem: boolean;
+  pontos: number;
+  nota?: string | null;
+}
+
+export interface KitAlunoScore {
+  score: number; // 0 a 100
+  classificacao: 'A' | 'B' | 'C' | 'D';
+  rotulo: 'quente' | 'bom' | 'fraco' | 'descartar';
+  justificativaNota: string; // "A · 85 de 100 (quente, 75 ou mais). Somou: site no ar +25..."
+  sinais: Record<string, KitAlunoScoreSignal>;
+  situacaoSite: 'com_site' | 'sem_site' | 'site_morto';
+  siteMorto: boolean;
+}
+
+export interface KitAlunoMarketing {
+  pixelMeta: boolean;
+  pixelGoogle: boolean;
+  analytics: boolean;
+  mobile: boolean;
+  botaoWhatsapp: boolean;
+  anoCopyright: number | null;
+  desatualizado: boolean;
+  oportunidade: 'alta' | 'media' | 'baixa';
+  justificativaOportunidade: string;
+  metaAdsUrl: string;
+  anunciosMetaStatus?: 'VERIFICAR_BIBLIOTECA' | 'ANUNCIOS_ATIVOS' | 'SEM_ANUNCIOS_ATIVOS';
+}
+
+export interface KitAlunoAderencia {
+  veredito: 'sim' | 'nao' | 'indefinido';
+  motivo: string;
+  confirmaDetectado?: string;
+  descartaDetectado?: string;
+}
+
+export interface KitAlunoNomes {
+  nomeOriginalMaps: string;
+  nomeEmpresaLimpo: string; // Ex: "Clínica OSPE" (natural ao telefone)
+  nomePessoaCitado: string | null; // Ex: "Dr. Paulo Mendes"
+  sugestaoAbordagem: string; // Ex: "É da Clínica OSPE? Gostaria de falar com o Dr. Paulo Mendes"
+}
+
+export interface KitAlunoRequisitos {
+  aprovado: boolean;
+  motivosReprovacao: string[];
+  tipoTelefone: 'telemovel' | 'fixo' | 'central_ou_invalido';
+  celularE164?: string;
+}
+
+export interface KitAlunoData {
+  score: KitAlunoScore;
+  marketing: KitAlunoMarketing;
+  aderencia: KitAlunoAderencia;
+  nomes: KitAlunoNomes;
+  requisitos: KitAlunoRequisitos;
+  enriquecidoEm: string;
 }
 
 export type SdrOutreachTone = 'executivo_ceo' | 'gatilho_gap' | 'estudo_caso' | 'quebra_padrao';
@@ -1016,6 +1082,11 @@ export interface BusinessProfile {
   servicesDescription: string;
   ticketMedio: string;
   icpTarget: string; // Perfil de Cliente Ideal
+  // Identidade Pessoal e Proteção Legal RGPD (1º Contacto):
+  senderName?: string; // Nome pessoal (ex: "Nivaldo Freitas")
+  senderRole?: string; // Cargo/Especialidade (ex: "Estrategista Digital & Consultoria Digital Independente")
+  useGenericSenderOnFirstContact?: boolean; // Se true, não cita nome de agência no primeiro contato
+  rgpdOptOutNotice?: string; // Aviso legal de opt-out (STOP) sob o RGPD
   // AI Extracted metrics:
   uvp: string; // Proposta Única de Valor
   solvedPains: string[]; // Dores que resolvemos
@@ -1064,6 +1135,7 @@ export interface FilterState {
   originApi: 'all' | 'apollo' | 'rapidapi_google_maps' | 'synthetic';
   roleCategory?: 'all' | 'owners' | 'managers' | 'commercial';
   roiVerdict?: 'all' | 'CALL_MEETING' | 'WHATSAPP_FIRST' | 'EMAIL_ONLY' | 'DISQUALIFIED';
+  highTicketOnly?: boolean;
   searchQuery?: string;
 }
 

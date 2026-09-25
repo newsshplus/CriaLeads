@@ -213,7 +213,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved, onClearAllActi
     setTestingRapidIdx(index);
     setTestFeedback(null);
 
-    const result = await testRapidApiKey(key);
+    const result = await testRapidApiKey(key, index);
     setTestingRapidIdx(null);
 
     const updatedRapidStatuses = [...(config.rapidApiKeyStatuses || [])];
@@ -232,9 +232,10 @@ export default function SettingsModal({ isOpen, onClose, onSaved, onClearAllActi
     }));
 
     if (result.ok) {
-      setTestFeedback(`RapidAPI LetScrape Key #${index + 1} conectada (${result.latencyMs}ms)!`);
+      const apiName = index === 0 ? 'LetScrape Google Maps' : index === 1 ? 'Crunchbase 4' : 'Yelp Business Reviews';
+      setTestFeedback(`${apiName} (Slot #${index + 1}) conectada (${result.latencyMs}ms)!`);
     } else {
-      setTestFeedback(`Erro RapidAPI Key #${index + 1}: ${result.error}`);
+      setTestFeedback(`Erro RapidAPI Slot #${index + 1}: ${result.error}`);
     }
   };
 
@@ -1108,23 +1109,47 @@ export default function SettingsModal({ isOpen, onClose, onSaved, onClearAllActi
                   const isTesting = testingRapidIdx === idx;
                   const isPrimary = idx === 0;
 
+                  const slotMeta = [
+                    {
+                      name: "RapidAPI #1 — Google Maps / LetScrape",
+                      host: "local-business-data.p.rapidapi.com",
+                      placeholder: "Chave RapidAPI LetScrape (Busca local, endereços, avaliações)...",
+                      desc: "Motor principal de raspagem de empresas, telefones e websites reais no Google Maps."
+                    },
+                    {
+                      name: "RapidAPI #2 — Crunchbase 4 Company Data",
+                      host: "crunchbase4.p.rapidapi.com",
+                      placeholder: "Chave RapidAPI Crunchbase 4 (POST /company com domain)...",
+                      desc: "Inteligência corporativa B2B: financiamento, porte, ano de fundação e setor."
+                    },
+                    {
+                      name: "RapidAPI #3 — Yelp Business Reviews & Locais",
+                      host: "yelp-business-reviews.p.rapidapi.com",
+                      placeholder: "Chave RapidAPI Yelp Business Reviews (GET /search)...",
+                      desc: "Busca de estabelecimentos reais, avaliações, categorias e contatos verificados."
+                    }
+                  ][idx];
+
                   return (
-                    <div key={idx} className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 space-y-2">
+                    <div key={idx} className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-white">Chave RapidAPI #{idx + 1}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold text-white">{slotMeta.name}</span>
+                          <span className="text-[10px] font-mono text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700">
+                            {slotMeta.host}
+                          </span>
                           {isPrimary && (
                             <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold border border-emerald-500/30">
-                              Chave Padrão Ativa
+                              Chave Padrão
                             </span>
                           )}
                           {status?.status === 'VALID' && (
                             <span className="text-[10px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800 flex items-center gap-1 font-semibold">
-                              <Check className="w-3 h-3" /> Conectada
+                              <Check className="w-3 h-3" /> Conectada ({status.latencyMs}ms)
                             </span>
                           )}
                           {status?.status === 'ERROR' && (
-                            <span className="text-[10px] bg-rose-950 text-rose-400 px-2 py-0.5 rounded border border-rose-800 flex items-center gap-1 font-semibold">
+                            <span className="text-[10px] bg-rose-950 text-rose-400 px-2 py-0.5 rounded border border-rose-800 flex items-center gap-1 font-semibold" title={status.errorMessage}>
                               <AlertTriangle className="w-3 h-3" /> Falhou
                             </span>
                           )}
@@ -1150,10 +1175,12 @@ export default function SettingsModal({ isOpen, onClose, onSaved, onClearAllActi
                         </button>
                       </div>
 
+                      <p className="text-[11px] text-slate-400 leading-tight">{slotMeta.desc}</p>
+
                       <input
                         type="password"
                         value={key}
-                        placeholder={idx === 0 ? "Cole sua chave RapidAPI (LetScrape)..." : "Chave sobressalente opcional..."}
+                        placeholder={slotMeta.placeholder}
                         onChange={e => {
                           const updatedKeys: [string, string, string] = [...config.rapidApiKeys];
                           updatedKeys[idx] = e.target.value;
